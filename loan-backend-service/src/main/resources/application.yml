@@ -88,3 +88,28 @@ logging:
     root: INFO
     com.mfb.lending: INFO
     org.springframework.security: INFO
+
+app:
+  auth:
+    jwt:
+      issuer: mfb-lending
+      audience: lending-api
+      access-token-ttl: 15m
+      refresh-token-ttl: 7d
+      staff-refresh-token-ttl: 12h
+      mfa-token-ttl: 5m
+    password:
+      staff-max-age: 90d
+    lockout:
+      max-failures: 5
+      duration: 15m
+    otp:
+      ttl: 5m
+      length: 6
+      max-attempts: 5
+      capture-enabled: false
+    rate-limit:
+      login-max-attempts: 10
+      login-window: 15m
+      register-max-attempts: 5
+      register-window: 1h

@@ -107,7 +107,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case 401 -> ErrorCode.UNAUTHORIZED;
             case 403 -> ErrorCode.FORBIDDEN;
             case 409 -> ErrorCode.CONFLICT;
+            case 423 -> ErrorCode.ACCOUNT_LOCKED;
+            case 429 -> ErrorCode.RATE_LIMITED;
             case 400, 405, 415 -> ErrorCode.BAD_REQUEST;
+            case 503 -> ErrorCode.SERVICE_UNAVAILABLE;
             default -> ErrorCode.INTERNAL_ERROR;
         };
     }
@@ -118,6 +121,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case 405 -> "Method not allowed";
             case 415 -> "Unsupported media type";
             case 400 -> "The request is invalid";
+            case 423 -> "The account is temporarily locked";
+            case 429 -> "Too many attempts. Try again later";
             default -> "The request could not be completed";
         };
     }

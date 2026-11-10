@@ -28,3 +28,14 @@ app:
     ops-username: ${OPS_USERNAME}
     ops-password: ${OPS_PASSWORD}
     allowed-origins: "${APP_ALLOWED_ORIGINS:}"
+  auth:
+    jwt:
+      hmac-secret: ${JWT_HMAC_SECRET}
+    otp:
+      pepper: ${OTP_PEPPER}
+    encryption-key: ${APP_DATA_KEY}
+    bootstrap:
+      email: ${BOOTSTRAP_ADMIN_EMAIL:}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+      phone-number: ${BOOTSTRAP_ADMIN_PHONE:}
+      mfa-secret: ${BOOTSTRAP_ADMIN_MFA_SECRET:}

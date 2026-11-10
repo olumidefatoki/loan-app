@@ -22,14 +22,25 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("MFB Digital Lending Platform")
-                        .description("Foundation API for the modular monolith lending platform.")
+                        .description("""
+                                Lending platform API. Customer and staff authentication use one contract for React and Flutter clients: \
+                                send the access token as Authorization: Bearer, and send the refresh token in the JSON body. \
+                                There is no separate mobile authentication flow. Access tokens are short-lived. \
+                                Refresh tokens rotate on every use, and reuse of a rotated token revokes the session family. \
+                                Errors use the same envelope: success=false, code, message, errors, correlationId, timestamp, and path.""")
                         .version("v1")
                         .contact(new Contact().name("MFB Platform Engineering")))
                 .addServersItem(new Server().url("/").description("Current environment"))
-                .components(new Components().addSecuritySchemes("opsBasic", new SecurityScheme()
-                        .type(SecurityScheme.Type.HTTP)
-                        .scheme("basic")
-                        .description("Operational account used for protected actuator endpoints.")));
+                .components(new Components()
+                        .addSecuritySchemes("bearerAuth", new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
+                                .description("Short-lived access token issued by the customer or staff login endpoints."))
+                        .addSecuritySchemes("opsBasic", new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("basic")
+                                .description("Operational account used for protected actuator endpoints.")));
     }
 
     @Bean

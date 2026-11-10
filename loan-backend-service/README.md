@@ -36,13 +36,18 @@ Select a profile with `SPRING_PROFILES_ACTIVE`.
 | Method | Path | Access |
 | --- | --- | --- |
 | `GET` | `/api/v1/system/version` | Public |
+| `POST` | `/api/v1/auth/*` | Public customer registration, OTP, login, refresh, and password reset. Logout and `/me` require a bearer token |
+| `POST` | `/api/v1/admin/auth/login`, `/mfa/verify`, `/refresh-token` | Public staff authentication. Logout requires a bearer token |
+| `GET`/`POST`/`PUT`/`DELETE` | `/api/v1/admin/users`, `/roles`, `/permissions` | Bearer token plus `USER_MANAGE` or `SYSTEM_CONFIGURE` |
 | `GET` | `/actuator/health` | Public status. Component details require the ops account |
 | `GET` | `/actuator/health/liveness` | Public |
 | `GET` | `/actuator/health/readiness` | Public. Checks database, Redis, and RabbitMQ |
 | `GET` | `/v3/api-docs/v1` | Local and development only |
 | `GET` | `/swagger-ui/index.html` | Local and development only |
 
-Other actuator endpoints are not exposed. Requests that reach a protected path without the ops account receive `401`.
+React and Flutter clients use the same authentication contract. Send `Authorization: Bearer` for the access token and send the refresh token in the JSON body. There is no separate mobile flow.
+
+Other actuator endpoints are not exposed. A request without a valid bearer token receives `401`. A token without the required permission receives `403`. The ops account is only for actuator details.
 
 Send `X-Correlation-Id` on a request to keep a trace across the API, outbound HTTP clients, and RabbitMQ messages. Unsafe values are replaced with a UUID. The response always returns the id that was used.
 
@@ -81,7 +86,7 @@ Image build on its own:
 docker build -t loan-backend-service:local .
 ```
 
-The image starts with `SPRING_PROFILES_ACTIVE=production` and does not contain credentials. Supply `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`, `REDIS_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `OPS_USERNAME`, and `OPS_PASSWORD` at runtime.
+The image starts with `SPRING_PROFILES_ACTIVE=production` and does not contain credentials. Supply `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`, `REDIS_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `OPS_USERNAME`, `OPS_PASSWORD`, `JWT_HMAC_SECRET`, `OTP_PEPPER`, and `APP_DATA_KEY` at runtime. `JWT_HMAC_SECRET` and `APP_DATA_KEY` are Base64. The HMAC secret must decode to at least 32 bytes, and the data key must decode to exactly 32 bytes. Optional `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_PHONE`, and `BOOTSTRAP_ADMIN_MFA_SECRET` create the first system administrator when that email does not already exist.
 
 ## Module layout
 
@@ -91,8 +96,9 @@ com.mfb.lending
 ├── config          JDBC, Redis, RabbitMQ, security, OpenAPI
 └── module
     ├── system      version endpoint
+    ├── auth        customers, staff, sessions, OTP, JWT, and RBAC
     ├── branch      branches table; administration comes in a later epic
-    ├── audit       audit_logs table
+    ├── audit       audit_logs table and security audit writes
     └── integration integration_outbox and integration_inbox tables
 ```
 
@@ -108,7 +114,9 @@ Flyway migration `V1__create_foundation_tables.sql` creates:
 - `integration_outbox`
 - `integration_inbox`
 
-Customer, loan, repayment, and other domain tables are left for their own epics.
+`V2__create_auth_tables.sql` adds `system_users`, `roles`, `permissions`, `user_roles`, `role_permissions`, `user_branches`, `user_sessions`, `refresh_tokens`, `login_attempts`, and `otp_records`. Passwords are Argon2id hashes, refresh tokens and OTP codes are SHA-256 or HMAC hashes, and MFA secrets are AES-GCM ciphertext. Access tokens last 15 minutes. Refresh tokens rotate, and presenting a replaced token revokes that token family.
+
+Loan, repayment, and other domain tables are left for their own epics.
 
 ## Pipeline
 

@@ -27,6 +27,18 @@ app:
     ops-username: ${OPS_USERNAME:ops}
     ops-password: ${OPS_PASSWORD:}
     allowed-origins: "${APP_ALLOWED_ORIGINS:http://localhost:3000}"
+  auth:
+    jwt:
+      hmac-secret: ${JWT_HMAC_SECRET:bG9jYWwtZGV2LWp3dC1obWFjLXNlY3JldC1rZXktMzJiIQ==}
+    otp:
+      pepper: ${OTP_PEPPER:local-dev-otp-pepper-value}
+    encryption-key: ${APP_DATA_KEY:bG9jYWwtZGV2LWFlcy0yNTYtZGF0YS1rZXktMzJiISE=}
+    bootstrap:
+      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@mfb.local}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:Str0ng-Passw0rd!}
+      phone-number: ${BOOTSTRAP_ADMIN_PHONE:+2348000000001}
+      full-name: ${BOOTSTRAP_ADMIN_NAME:Platform Administrator}
+      mfa-secret: ${BOOTSTRAP_ADMIN_MFA_SECRET:JBSWY3DPEHPK3PXP}
 
 logging:
   level:

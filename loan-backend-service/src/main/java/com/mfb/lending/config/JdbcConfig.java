@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration
 public class JdbcConfig {
@@ -24,5 +26,12 @@ public class JdbcConfig {
     @Bean
     public NamedParameterJdbcTemplate namedParameterJdbcTemplate(JdbcTemplate jdbcTemplate) {
         return new NamedParameterJdbcTemplate(jdbcTemplate);
+    }
+
+    @Bean
+    public TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setTimeout(QUERY_TIMEOUT_SECONDS);
+        return template;
     }
 }

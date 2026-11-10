@@ -22,7 +22,9 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException {
-        response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Basic realm=\"lending\"");
+        String path = request.getRequestURI() == null ? "" : request.getRequestURI();
+        String challenge = path.startsWith("/api/") ? "Bearer" : "Basic realm=\"lending\"";
+        response.setHeader(HttpHeaders.WWW_AUTHENTICATE, challenge);
         writer.write(response, HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Authentication is required", request.getRequestURI());
     }
 }

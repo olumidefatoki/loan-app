@@ -17,6 +17,22 @@ app:
     ops-username: ops
     ops-password: test-ops-password
     allowed-origins: []
+  auth:
+    jwt:
+      hmac-secret: dGVzdC1zdWl0ZS1qd3QtaG1hYy1zZWNyZXQtMzJiISE=
+    otp:
+      pepper: test-suite-otp-pepper
+      capture-enabled: true
+    encryption-key: dGVzdC1zdWl0ZS1hZXMtMjU2LWRhdGEta2V5LTMyYiE=
+    rate-limit:
+      login-max-attempts: 10
+      register-max-attempts: 100
+    bootstrap:
+      email: admin@mfb.test
+      password: Str0ng-Passw0rd!
+      phone-number: "+2348000000001"
+      full-name: Platform Administrator
+      mfa-secret: JBSWY3DPEHPK3PXP
 
 logging:
   level:
