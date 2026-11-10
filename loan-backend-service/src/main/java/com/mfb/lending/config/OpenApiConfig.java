@@ -23,10 +23,11 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("MFB Digital Lending Platform")
                         .description("""
-                                Lending platform API. Customer and staff authentication use one contract for React and Flutter clients: \
+                                Lending platform API. Customer, KYC, and staff authentication use one contract for React and Flutter clients: \
                                 send the access token as Authorization: Bearer, and send the refresh token in the JSON body. \
-                                There is no separate mobile authentication flow. Access tokens are short-lived. \
-                                Refresh tokens rotate on every use, and reuse of a rotated token revokes the session family. \
+                                There is no separate mobile flow. Optional header X-Client-Channel is WEB or MOBILE. \
+                                Access tokens are short-lived. Refresh tokens rotate on every use, and reuse of a rotated token revokes the session family. \
+                                Customer identity numbers are encrypted at rest and masked in responses. \
                                 Errors use the same envelope: success=false, code, message, errors, correlationId, timestamp, and path.""")
                         .version("v1")
                         .contact(new Contact().name("MFB Platform Engineering")))

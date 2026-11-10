@@ -38,3 +38,6 @@ app:
       password: ${BOOTSTRAP_ADMIN_PASSWORD:}
       phone-number: ${BOOTSTRAP_ADMIN_PHONE:}
       mfa-secret: ${BOOTSTRAP_ADMIN_MFA_SECRET:}
+  customer:
+    documents:
+      directory: ${CUSTOMER_DOCUMENT_DIR}

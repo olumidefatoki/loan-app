@@ -33,6 +33,10 @@ app:
       phone-number: "+2348000000001"
       full-name: Platform Administrator
       mfa-secret: JBSWY3DPEHPK3PXP
+  customer:
+    documents:
+      directory: ${java.io.tmpdir}/mfb-customer-it
+      max-bytes: 2048
 
 logging:
   level:

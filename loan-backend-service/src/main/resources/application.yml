@@ -29,6 +29,10 @@ spring:
         enabled: false
   rabbitmq:
     connection-timeout: 5s
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
 
 server:
   port: ${SERVER_PORT:8080}
@@ -113,3 +117,9 @@ app:
       login-window: 15m
       register-max-attempts: 5
       register-window: 1h
+  customer:
+    documents:
+      directory: ${CUSTOMER_DOCUMENT_DIR:${java.io.tmpdir}/mfb-customer-documents}
+      max-bytes: 10485760
+    kyc:
+      provider: mock

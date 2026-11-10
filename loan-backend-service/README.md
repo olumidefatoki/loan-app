@@ -39,13 +39,14 @@ Select a profile with `SPRING_PROFILES_ACTIVE`.
 | `POST` | `/api/v1/auth/*` | Public customer registration, OTP, login, refresh, and password reset. Logout and `/me` require a bearer token |
 | `POST` | `/api/v1/admin/auth/login`, `/mfa/verify`, `/refresh-token` | Public staff authentication. Logout requires a bearer token |
 | `GET`/`POST`/`PUT`/`DELETE` | `/api/v1/admin/users`, `/roles`, `/permissions` | Bearer token plus `USER_MANAGE` or `SYSTEM_CONFIGURE` |
+| `GET`/`POST`/`PUT` | `/api/v1/customers` | Bearer token. Customers manage their own record. Staff need `CUSTOMER_VIEW` or `CUSTOMER_CREATE`, limited to assigned branches |
 | `GET` | `/actuator/health` | Public status. Component details require the ops account |
 | `GET` | `/actuator/health/liveness` | Public |
 | `GET` | `/actuator/health/readiness` | Public. Checks database, Redis, and RabbitMQ |
 | `GET` | `/v3/api-docs/v1` | Local and development only |
 | `GET` | `/swagger-ui/index.html` | Local and development only |
 
-React and Flutter clients use the same authentication contract. Send `Authorization: Bearer` for the access token and send the refresh token in the JSON body. There is no separate mobile flow.
+React and Flutter clients use the same authentication and customer contract. Send `Authorization: Bearer` for the access token and send the refresh token in the JSON body. There is no separate mobile flow. Customer calls may send `X-Client-Channel: WEB` or `MOBILE`.
 
 Other actuator endpoints are not exposed. A request without a valid bearer token receives `401`. A token without the required permission receives `403`. The ops account is only for actuator details.
 
@@ -86,7 +87,7 @@ Image build on its own:
 docker build -t loan-backend-service:local .
 ```
 
-The image starts with `SPRING_PROFILES_ACTIVE=production` and does not contain credentials. Supply `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`, `REDIS_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `OPS_USERNAME`, `OPS_PASSWORD`, `JWT_HMAC_SECRET`, `OTP_PEPPER`, and `APP_DATA_KEY` at runtime. `JWT_HMAC_SECRET` and `APP_DATA_KEY` are Base64. The HMAC secret must decode to at least 32 bytes, and the data key must decode to exactly 32 bytes. Optional `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_PHONE`, and `BOOTSTRAP_ADMIN_MFA_SECRET` create the first system administrator when that email does not already exist.
+The image starts with `SPRING_PROFILES_ACTIVE=production` and does not contain credentials. Supply `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`, `REDIS_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `OPS_USERNAME`, `OPS_PASSWORD`, `JWT_HMAC_SECRET`, `OTP_PEPPER`, `APP_DATA_KEY`, and `CUSTOMER_DOCUMENT_DIR` at runtime. `CUSTOMER_DOCUMENT_DIR` is the private directory used for customer document bytes. `JWT_HMAC_SECRET` and `APP_DATA_KEY` are Base64. The HMAC secret must decode to at least 32 bytes, and the data key must decode to exactly 32 bytes. Optional `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_PHONE`, and `BOOTSTRAP_ADMIN_MFA_SECRET` create the first system administrator when that email does not already exist.
 
 ## Module layout
 
@@ -97,6 +98,7 @@ com.mfb.lending
 └── module
     ├── system      version endpoint
     ├── auth        customers, staff, sessions, OTP, JWT, and RBAC
+    ├── customer    onboarding, profiles, documents, and KYC
     ├── branch      branches table; administration comes in a later epic
     ├── audit       audit_logs table and security audit writes
     └── integration integration_outbox and integration_inbox tables
@@ -115,6 +117,25 @@ Flyway migration `V1__create_foundation_tables.sql` creates:
 - `integration_inbox`
 
 `V2__create_auth_tables.sql` adds `system_users`, `roles`, `permissions`, `user_roles`, `role_permissions`, `user_branches`, `user_sessions`, `refresh_tokens`, `login_attempts`, and `otp_records`. Passwords are Argon2id hashes, refresh tokens and OTP codes are SHA-256 or HMAC hashes, and MFA secrets are AES-GCM ciphertext. Access tokens last 15 minutes. Refresh tokens rotate, and presenting a replaced token revokes that token family.
+
+`V3__create_customer_tables.sql` adds the customer master data and KYC evidence:
+
+- `customers`
+- `individual_profiles`
+- `sme_profiles`
+- `customer_directors`
+- `customer_beneficial_owners`
+- `customer_authorised_representatives`
+- `customer_addresses`
+- `customer_accounts`
+- `customer_documents`
+- `customer_consents`
+- `customer_kyc`
+- `customer_screening_results`
+- `customer_risk_profiles`
+- `customer_review_cases`
+
+BVN, NIN, TIN, and account numbers are AES-GCM ciphertext. Duplicate detection uses HMAC-SHA256 hashes. API responses return a masked value. Document bytes stay in private storage; PostgreSQL stores the metadata and SHA-256 checksum. KYC providers are interfaces. Development and test use mock adapters and do not call a vendor URL.
 
 Loan, repayment, and other domain tables are left for their own epics.
 

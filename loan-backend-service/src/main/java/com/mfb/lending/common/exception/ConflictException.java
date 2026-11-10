@@ -5,6 +5,10 @@ import org.springframework.http.HttpStatus;
 public class ConflictException extends ApiException {
 
     public ConflictException(String message) {
-        super(ErrorCode.CONFLICT, HttpStatus.CONFLICT, message);
+        this(ErrorCode.CONFLICT, message);
+    }
+
+    public ConflictException(ErrorCode errorCode, String message) {
+        super(errorCode, HttpStatus.CONFLICT, message);
     }
 }
