@@ -28,6 +28,8 @@ public class OpenApiConfig {
                                 There is no separate mobile flow. Optional header X-Client-Channel is WEB or MOBILE. \
                                 Access tokens are short-lived. Refresh tokens rotate on every use, and reuse of a rotated token revokes the session family. \
                                 Customer identity numbers are encrypted at rest and masked in responses. \
+                                Loan products are versioned. A new version never rewrites a previous version, and a booked loan keeps the version it was opened on. \
+                                Product activation uses maker-checker: the administrator who submitted a version cannot approve or activate it. \
                                 Errors use the same envelope: success=false, code, message, errors, correlationId, timestamp, and path.""")
                         .version("v1")
                         .contact(new Contact().name("MFB Platform Engineering")))

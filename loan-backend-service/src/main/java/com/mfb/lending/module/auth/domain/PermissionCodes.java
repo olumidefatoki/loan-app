@@ -15,6 +15,9 @@ public final class PermissionCodes {
     public static final String REPORT_VIEW = "REPORT_VIEW";
     public static final String USER_MANAGE = "USER_MANAGE";
     public static final String SYSTEM_CONFIGURE = "SYSTEM_CONFIGURE";
+    public static final String LOAN_PRODUCT_VIEW = "LOAN_PRODUCT_VIEW";
+    public static final String LOAN_PRODUCT_MANAGE = "LOAN_PRODUCT_MANAGE";
+    public static final String LOAN_PRODUCT_APPROVE = "LOAN_PRODUCT_APPROVE";
 
     public static final String CUSTOMER_ROLE = "CUSTOMER";
     public static final String SYSTEM_ADMIN_ROLE = "SYSTEM_ADMIN";

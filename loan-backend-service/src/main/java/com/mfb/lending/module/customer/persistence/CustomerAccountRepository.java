@@ -1,6 +1,7 @@
 package com.mfb.lending.module.customer.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.mfb.lending.module.customer.application.IdentityNumbers;
@@ -51,12 +52,22 @@ public class CustomerAccountRepository {
     }
 
     public List<AccountRecord> list(UUID customerId) {
-        return jdbc.query(
-                """
+        return listRows(customerId, null);
+    }
+
+    private List<AccountRecord> listRows(UUID customerId, UUID accountId) {
+        String sql = """
                 SELECT id, customer_id, bank_code, bank_name, account_number_last4, account_name, verification_status, verified_at
-                FROM customer_accounts WHERE customer_id = :customerId ORDER BY created_at
-                """,
-                new MapSqlParameterSource("customerId", customerId),
+                FROM customer_accounts
+                WHERE customer_id = :customerId
+                """;
+        if (accountId != null) {
+            sql += " AND id = :id";
+        }
+        sql += " ORDER BY created_at";
+        return jdbc.query(
+                sql,
+                new MapSqlParameterSource().addValue("customerId", customerId).addValue("id", accountId),
                 (rs, rowNum) -> new AccountRecord(
                         rs.getObject("id", UUID.class),
                         rs.getObject("customer_id", UUID.class),
@@ -66,6 +77,10 @@ public class CustomerAccountRepository {
                         rs.getString("account_name"),
                         AccountVerificationStatus.valueOf(rs.getString("verification_status")),
                         JdbcTimes.instant(rs, "verified_at")));
+    }
+
+    public Optional<AccountRecord> find(UUID customerId, UUID accountId) {
+        return listRows(customerId, accountId).stream().findFirst();
     }
 
     public int verifiedCount(UUID customerId) {

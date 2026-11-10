@@ -40,6 +40,8 @@ Select a profile with `SPRING_PROFILES_ACTIVE`.
 | `POST` | `/api/v1/admin/auth/login`, `/mfa/verify`, `/refresh-token` | Public staff authentication. Logout requires a bearer token |
 | `GET`/`POST`/`PUT`/`DELETE` | `/api/v1/admin/users`, `/roles`, `/permissions` | Bearer token plus `USER_MANAGE` or `SYSTEM_CONFIGURE` |
 | `GET`/`POST`/`PUT` | `/api/v1/customers` | Bearer token. Customers manage their own record. Staff need `CUSTOMER_VIEW` or `CUSTOMER_CREATE`, limited to assigned branches |
+| `GET` | `/api/v1/loan-products` | Bearer token. Customers and originators see active products only. `LOAN_PRODUCT_VIEW` sees every status |
+| `POST`/`PUT` | `/api/v1/admin/loan-products` | Bearer token plus `LOAN_PRODUCT_MANAGE`. Approval, activation, suspension, and deactivation need `LOAN_PRODUCT_APPROVE` and a different administrator from the submitter |
 | `GET` | `/actuator/health` | Public status. Component details require the ops account |
 | `GET` | `/actuator/health/liveness` | Public |
 | `GET` | `/actuator/health/readiness` | Public. Checks database, Redis, and RabbitMQ |
