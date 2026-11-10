@@ -1,0 +1,25 @@
+spring:
+  main:
+    banner-mode: off
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+app:
+  security:
+    ops-username: ops
+    ops-password: test-ops-password
+    allowed-origins: []
+
+logging:
+  level:
+    root: WARN
+    com.mfb.lending: INFO
+    org.flywaydb: INFO
