@@ -1,0 +1,9 @@
+package com.mfb.lending.module.credit.domain;
+
+import java.math.BigDecimal;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record RiskBand(String code, BigDecimal minimumScore) {
+}

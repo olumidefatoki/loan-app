@@ -77,20 +77,21 @@ public class LoanApplicationDocumentService {
         UUID documentId = UUID.randomUUID();
         String key = "loan-applications/" + applicationId + "/" + documentId;
         storage.put(key, body);
+        Stored stored;
         try {
-            Stored stored = transactions.execute(status -> store(applicationId, code, documentId, key, inspected, actor));
-            if (stored.previousKey() != null) {
-                storage.delete(stored.previousKey());
-            }
-            audit.record("LOAN_APPLICATION_DOCUMENT_STORED", "loan_application", applicationId.toString(), actor.getUsername(), client, Map.of(
-                    "documentId", documentId.toString(),
-                    "documentCode", code,
-                    "checksumSha256", inspected.checksumSha256()));
-            return stored.response();
+            stored = transactions.execute(status -> store(applicationId, code, documentId, key, inspected, actor));
         } catch (RuntimeException ex) {
             storage.delete(key);
             throw ex;
         }
+        if (stored.previousKey() != null) {
+            storage.delete(stored.previousKey());
+        }
+        audit.record("LOAN_APPLICATION_DOCUMENT_STORED", "loan_application", applicationId.toString(), actor.getUsername(), client, Map.of(
+                "documentId", documentId.toString(),
+                "documentCode", code,
+                "checksumSha256", inspected.checksumSha256()));
+        return stored.response();
     }
 
     public List<ApplicationDocumentResponse> list(UUID applicationId, AuthenticatedUser actor) {

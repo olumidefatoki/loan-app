@@ -30,6 +30,9 @@ public class OpenApiConfig {
                                 Customer identity numbers are encrypted at rest and masked in responses. \
                                 Loan products are versioned. A new version never rewrites a previous version, and a booked loan keeps the version it was opened on. \
                                 Product activation uses maker-checker: the administrator who submitted a version cannot approve or activate it. \
+                                Credit assessments keep the scoring model version, policy version, and calculation inputs that produced the decision. \
+                                A credit score cannot override a compliance hold or a mandatory policy failure. Policy exceptions need a second officer. \
+                                Credit bureau calls go through a provider port. This API does not publish a bureau vendor URL. \
                                 Errors use the same envelope: success=false, code, message, errors, correlationId, timestamp, and path.""")
                         .version("v1")
                         .contact(new Contact().name("MFB Platform Engineering")))
