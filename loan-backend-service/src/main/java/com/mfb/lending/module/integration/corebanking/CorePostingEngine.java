@@ -352,7 +352,8 @@ public class CorePostingEngine {
             if (current.state() == FinancialTransactionState.PENDING) {
                 current = move(current, FinancialEvent.ACCEPT_SUBMISSION, patch(InstructionStage.PAYMENT_SENT, status.providerReference(), null, null, "", null), "Posting accepted");
             }
-            if (current.kind() == FinancialTransactionKind.REPAYMENT) {
+            if (current.kind() == FinancialTransactionKind.REPAYMENT
+                    && !store.servicingCollection(current.id())) {
                 BigDecimal net = store.postedNet(current.applicationId());
                 if (current.amount().compareTo(net) > 0
                         && (current.state() == FinancialTransactionState.SUBMITTED || current.state() == FinancialTransactionState.UNKNOWN)) {

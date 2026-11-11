@@ -14,6 +14,8 @@ import com.mfb.lending.module.loanapplication.application.ApplicationWorkflow;
 import com.mfb.lending.module.loanapplication.domain.ApplicationRecord;
 import com.mfb.lending.module.loanapplication.domain.ApplicationStatus;
 import com.mfb.lending.module.loanapplication.persistence.LoanApplicationRepository;
+import com.mfb.lending.module.servicing.application.LoanServicing;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,16 +25,19 @@ public class JdbcDisbursementLoanPort implements DisbursementLoanPort {
     private final CustomerAccountRepository accounts;
     private final CustomerEligibilityService eligibility;
     private final ObjectMapper objectMapper;
+    private final ObjectProvider<LoanServicing> servicing;
 
     public JdbcDisbursementLoanPort(
             LoanApplicationRepository applications,
             CustomerAccountRepository accounts,
             CustomerEligibilityService eligibility,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            ObjectProvider<LoanServicing> servicing) {
         this.applications = applications;
         this.accounts = accounts;
         this.eligibility = eligibility;
         this.objectMapper = objectMapper;
+        this.servicing = servicing;
     }
 
     @Override
@@ -76,6 +81,7 @@ public class JdbcDisbursementLoanPort implements DisbursementLoanPort {
         ApplicationRecord current = applications.lock(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan application"));
         if (current.status() == ApplicationStatus.DISBURSED) {
+            activate(applicationId, reference, actorId, actorName);
             return;
         }
         ApplicationWorkflow.assertTransition(current.status(), ApplicationStatus.DISBURSED);
@@ -108,6 +114,11 @@ public class JdbcDisbursementLoanPort implements DisbursementLoanPort {
                 actorName));
         applications.insertHistory(UUID.randomUUID(), applicationId, current.status(), ApplicationStatus.DISBURSED, reason, actorId);
         applications.insertEvent(UUID.randomUUID(), applicationId, "DISBURSED", payload(reference), actorId);
+        activate(applicationId, reference, actorId, actorName);
+    }
+
+    private void activate(UUID applicationId, String reference, UUID actorId, String actorName) {
+        servicing.getObject().activateFromDisbursement(applicationId, reference, actorId, actorName);
     }
 
     private String payload(String reference) {

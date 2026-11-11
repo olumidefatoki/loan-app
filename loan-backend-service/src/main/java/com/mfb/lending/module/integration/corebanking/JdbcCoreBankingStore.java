@@ -207,6 +207,47 @@ public class JdbcCoreBankingStore implements CoreBankingStore {
     }
 
     @Override
+    public void markServicingCollection(UUID transactionId) {
+        int updated = jdbc.update(
+                "UPDATE core_banking_transactions SET servicing_collection = TRUE WHERE id = :id",
+                new MapSqlParameterSource("id", transactionId));
+        if (updated != 1) {
+            throw new com.mfb.lending.common.exception.ResourceNotFoundException("Core banking transaction");
+        }
+    }
+
+    @Override
+    public boolean servicingCollection(UUID transactionId) {
+        Boolean value = jdbc.queryForObject(
+                "SELECT servicing_collection FROM core_banking_transactions WHERE id = :id",
+                new MapSqlParameterSource("id", transactionId),
+                Boolean.class);
+        return Boolean.TRUE.equals(value);
+    }
+
+    @Override
+    public BigDecimal servicingRepaymentCash(UUID applicationId) {
+        String sql = applicationId == null
+                ? """
+                SELECT COALESCE(SUM(amount), 0)
+                FROM core_banking_transactions
+                WHERE kind = 'REPAYMENT'
+                  AND servicing_collection = TRUE
+                  AND state IN ('SUCCESSFUL', 'RECONCILIATION_REQUIRED')
+                """
+                : """
+                SELECT COALESCE(SUM(amount), 0)
+                FROM core_banking_transactions
+                WHERE kind = 'REPAYMENT'
+                  AND servicing_collection = TRUE
+                  AND state IN ('SUCCESSFUL', 'RECONCILIATION_REQUIRED')
+                  AND application_id = :applicationId
+                """;
+        BigDecimal total = jdbc.queryForObject(sql, new MapSqlParameterSource("applicationId", applicationId), BigDecimal.class);
+        return total == null ? BigDecimal.ZERO : total;
+    }
+
+    @Override
     public int countState(FinancialTransactionState state) {
         Integer count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM core_banking_transactions WHERE state = :state",

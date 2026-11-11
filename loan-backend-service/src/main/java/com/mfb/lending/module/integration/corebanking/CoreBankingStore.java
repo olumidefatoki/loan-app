@@ -36,6 +36,12 @@ public interface CoreBankingStore {
 
     BigDecimal postedNet(UUID applicationId);
 
+    void markServicingCollection(UUID transactionId);
+
+    boolean servicingCollection(UUID transactionId);
+
+    BigDecimal servicingRepaymentCash(UUID applicationId);
+
     int countState(FinancialTransactionState state);
 
     UUID insertRequest(UUID transactionId, String operation, String idempotencyKey, String correlationId, String payload);

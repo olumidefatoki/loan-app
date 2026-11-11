@@ -152,6 +152,20 @@ class CoreBankingWorkflowTest {
     }
 
     @Test
+    void servicingCollectionCanIncludeInterestAboveRemainingPrincipal() {
+        Harness harness = harness(5);
+        harness.disbursements.disburse(instruction(harness, "disburse-servicing"), null);
+        CoreTransaction collected = harness.repayments.collectForServicing(
+                repayment(harness, "srv-collect", "1200.00"), new BigDecimal("1200.00"), null);
+        assertThat(collected.state()).isEqualTo(FinancialTransactionState.SUCCESSFUL);
+        assertThat(harness.store.servicingCollection(collected.id())).isTrue();
+        assertThat(harness.store.postedNet(harness.loan.applicationId())).isEqualByComparingTo("-200.00");
+        assertThat(harness.store.servicingRepaymentCash(harness.loan.applicationId())).isEqualByComparingTo("1200.00");
+        assertThatThrownBy(() -> harness.repayments.repay(repayment(harness, "srv-direct", "1.00"), null))
+                .isInstanceOf(com.mfb.lending.common.exception.ValidationException.class);
+    }
+
+    @Test
     void reconciliationMismatchIsRecordedAndDeadLettersResolveOnlyAfterEnquiry() {
         Harness harness = harness(5);
         CoreTransaction posted = harness.disbursements.disburse(instruction(harness, "disburse-recon"), null);

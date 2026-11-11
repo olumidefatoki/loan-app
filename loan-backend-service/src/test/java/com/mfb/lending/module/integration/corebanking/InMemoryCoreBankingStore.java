@@ -187,6 +187,36 @@ public class InMemoryCoreBankingStore implements CoreBankingStore {
         }
     }
 
+    private final java.util.Set<UUID> servicingCollections = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    @Override
+    public void markServicingCollection(UUID transactionId) {
+        synchronized (lock) {
+            if (!transactions.containsKey(transactionId)) {
+                throw new ResourceNotFoundException("Core banking transaction");
+            }
+            servicingCollections.add(transactionId);
+        }
+    }
+
+    @Override
+    public boolean servicingCollection(UUID transactionId) {
+        return servicingCollections.contains(transactionId);
+    }
+
+    @Override
+    public BigDecimal servicingRepaymentCash(UUID applicationId) {
+        synchronized (lock) {
+            return transactions.values().stream()
+                    .filter(tx -> servicingCollections.contains(tx.id()))
+                    .filter(tx -> tx.kind() == FinancialTransactionKind.REPAYMENT)
+                    .filter(tx -> tx.state().countsAsPosted())
+                    .filter(tx -> applicationId == null || applicationId.equals(tx.applicationId()))
+                    .map(CoreTransaction::amount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+    }
+
     @Override
     public int countState(FinancialTransactionState state) {
         synchronized (lock) {

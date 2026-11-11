@@ -59,6 +59,31 @@ public class CoreRepaymentService {
         return submit(prepared, false, client);
     }
 
+    public CoreTransaction collectForServicing(RepaymentInstruction instruction, BigDecimal authorisedAmount, ClientContext client) {
+        String key = CoreIds.idempotency(instruction.idempotencyKey());
+        BigDecimal amount = CoreMoney.ngn(instruction.amount(), "amount");
+        BigDecimal ceiling = CoreMoney.ngn(authorisedAmount, "amount");
+        if (amount.compareTo(ceiling) > 0) {
+            throw ValidationException.field("amount", "amount exceeds the authorised collection");
+        }
+        var existing = store.findByIdempotency(key);
+        if (existing.isPresent()) {
+            return resume(existing.get());
+        }
+        CoreTransaction disbursement = postedDisbursement(instruction.applicationId());
+        Prepared prepared;
+        try {
+            prepared = unitOfWork.required(() -> {
+                Prepared inserted = insert(instruction, key, amount, disbursement, FinancialTransactionKind.REPAYMENT, null);
+                store.markServicingCollection(inserted.transaction().id());
+                return inserted;
+            });
+        } catch (ConflictException ex) {
+            return store.findByIdempotency(key).orElseThrow(() -> ex);
+        }
+        return submit(prepared, false, client);
+    }
+
     public CoreTransaction acceptExternal(RepaymentInstruction instruction) {
         String key = CoreIds.idempotency(instruction.idempotencyKey());
         var existing = store.findByIdempotency(key);
