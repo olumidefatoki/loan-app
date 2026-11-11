@@ -38,6 +38,8 @@ public class OpenApiConfig {
                                 Guarantor identity numbers are encrypted. A guarantor is not approved security until consent, verification, a guarantee agreement, and acceptance by a second officer are on record. \
                                 Loan approval uses a versioned matrix. Amount, product, segment, branch, risk, collateral, security, and exception type select the stages. Approval limits are stored as delegations, and a user cannot approve a request they made, an application they originated, or an amount above that delegation. \
                                 An approval decision is immutable. A later change to the application amount, revision, or credit result supersedes it. Automated approval runs only after credit assessment when the product, matrix, eligibility, and compliance gates all allow it. \
+                                A loan offer can be generated only after final approval. Interest, instalments, fees, and the repayment schedule come from the loan calculation engine and the product version pinned to the application. A material change creates a new offer version and requires a fresh acceptance. The agreement PDF checksum is retained and checked on download. Customer acceptance is an electronic record of a verified KYC identity. It is not a qualified digital signature unless an approved signature provider is configured and legally approved. \
+
                                 Errors use the same envelope: success=false, code, message, errors, correlationId, timestamp, and path.""")
                         .version("v1")
                         .contact(new Contact().name("MFB Platform Engineering")))

@@ -123,3 +123,10 @@ app:
       max-bytes: 10485760
     kyc:
       provider: mock
+  offer:
+    expiry-days: 14
+    fee-tax-rate: 0
+    signature:
+      mode: RECORDED_ACCEPTANCE
+    documents:
+      directory: ${OFFER_DOCUMENT_DIR:${java.io.tmpdir}/mfb-loan-agreements}

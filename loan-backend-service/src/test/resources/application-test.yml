@@ -37,6 +37,13 @@ app:
     documents:
       directory: ${java.io.tmpdir}/mfb-customer-it
       max-bytes: 2048
+  offer:
+    expiry-days: 14
+    fee-tax-rate: 7.5
+    signature:
+      mode: RECORDED_ACCEPTANCE
+    documents:
+      directory: ${java.io.tmpdir}/mfb-loan-agreements-it
 
 logging:
   level:
