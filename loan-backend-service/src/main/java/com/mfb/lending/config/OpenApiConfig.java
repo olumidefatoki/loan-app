@@ -36,6 +36,8 @@ public class OpenApiConfig {
                                 Collateral is approved security only after ownership, documents, legal status, insurance, and encumbrance checks, and an approved valuation. \
                                 Pledges cannot exceed the approved eligible value. Release needs a different authorised officer and a settled or discharged facility. \
                                 Guarantor identity numbers are encrypted. A guarantor is not approved security until consent, verification, a guarantee agreement, and acceptance by a second officer are on record. \
+                                Loan approval uses a versioned matrix. Amount, product, segment, branch, risk, collateral, security, and exception type select the stages. Approval limits are stored as delegations, and a user cannot approve a request they made, an application they originated, or an amount above that delegation. \
+                                An approval decision is immutable. A later change to the application amount, revision, or credit result supersedes it. Automated approval runs only after credit assessment when the product, matrix, eligibility, and compliance gates all allow it. \
                                 Errors use the same envelope: success=false, code, message, errors, correlationId, timestamp, and path.""")
                         .version("v1")
                         .contact(new Contact().name("MFB Platform Engineering")))

@@ -27,6 +27,9 @@ public final class PermissionCodes {
     public static final String CREDIT_ASSESSMENT_VIEW = "CREDIT_ASSESSMENT_VIEW";
     public static final String CREDIT_ASSESSMENT_RUN = "CREDIT_ASSESSMENT_RUN";
     public static final String CREDIT_POLICY_MANAGE = "CREDIT_POLICY_MANAGE";
+    public static final String APPROVAL_VIEW = "APPROVAL_VIEW";
+    public static final String APPROVAL_DELEGATE = "APPROVAL_DELEGATE";
+    public static final String APPROVAL_MATRIX_MANAGE = "APPROVAL_MATRIX_MANAGE";
 
     public static final String CUSTOMER_ROLE = "CUSTOMER";
     public static final String SYSTEM_ADMIN_ROLE = "SYSTEM_ADMIN";

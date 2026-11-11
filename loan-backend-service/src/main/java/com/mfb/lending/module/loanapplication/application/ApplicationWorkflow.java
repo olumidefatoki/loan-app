@@ -73,10 +73,12 @@ public final class ApplicationWorkflow {
                 ApplicationStatus.APPROVED,
                 ApplicationStatus.REJECTED,
                 ApplicationStatus.REFERRED,
+                ApplicationStatus.DOCUMENTS_PENDING,
                 ApplicationStatus.COMPLIANCE_HOLD,
                 ApplicationStatus.CANCELLED);
         allow(ApplicationStatus.APPROVED,
                 ApplicationStatus.OFFER_ISSUED,
+                ApplicationStatus.PENDING_APPROVAL,
                 ApplicationStatus.CANCELLED,
                 ApplicationStatus.EXPIRED);
         allow(ApplicationStatus.OFFER_ISSUED,

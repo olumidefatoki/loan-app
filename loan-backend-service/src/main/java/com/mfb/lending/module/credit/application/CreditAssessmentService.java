@@ -15,6 +15,7 @@ import com.mfb.lending.common.exception.ConflictException;
 import com.mfb.lending.common.exception.ForbiddenException;
 import com.mfb.lending.common.exception.ResourceNotFoundException;
 import com.mfb.lending.common.exception.ValidationException;
+import com.mfb.lending.module.approval.application.ApprovalService;
 import com.mfb.lending.module.audit.application.AuditService;
 import com.mfb.lending.module.auth.domain.ClientContext;
 import com.mfb.lending.module.auth.dto.PageResponse;
@@ -85,6 +86,7 @@ public class CreditAssessmentService {
     private final ObjectMapper objectMapper;
     private final java.time.Clock clock;
     private final TransactionTemplate transactions;
+    private final ApprovalService approvals;
 
     public CreditAssessmentService(
             CreditAssessmentRepository assessments,
@@ -98,7 +100,8 @@ public class CreditAssessmentService {
             AuditService audit,
             ObjectMapper objectMapper,
             java.time.Clock clock,
-            TransactionTemplate transactions) {
+            TransactionTemplate transactions,
+            ApprovalService approvals) {
         this.assessments = assessments;
         this.policies = policies;
         this.applications = applications;
@@ -111,6 +114,7 @@ public class CreditAssessmentService {
         this.objectMapper = objectMapper;
         this.clock = clock;
         this.transactions = transactions;
+        this.approvals = approvals;
     }
 
     public CreditAssessmentResponse create(
@@ -136,6 +140,7 @@ public class CreditAssessmentService {
                 "decision", response.decision(),
                 "scoringModelVersionId", String.valueOf(response.scoringModelVersionId()),
                 "policyVersion", String.valueOf(response.policyVersion())));
+        approvals.consider(response.applicationId(), actor, client);
         return response;
     }
 
@@ -156,6 +161,7 @@ public class CreditAssessmentService {
         audit.record("CREDIT_RECOMMENDATION_RECORDED", "credit_assessment", id.toString(), actor.getUsername(), client, Map.of(
                 "recommendation", request.recommendation(),
                 "decision", String.valueOf(response.decision())));
+        approvals.consider(response.applicationId(), actor, client);
         return response;
     }
 

@@ -33,6 +33,8 @@ class ApplicationWorkflowTest {
         assertTransition(ApplicationStatus.UNDER_REVIEW, ApplicationStatus.COMPLIANCE_HOLD);
         assertTransition(ApplicationStatus.COMPLIANCE_HOLD, ApplicationStatus.KYC_PENDING);
         assertTransition(ApplicationStatus.CREDIT_ASSESSMENT, ApplicationStatus.REJECTED);
+        assertTransition(ApplicationStatus.PENDING_APPROVAL, ApplicationStatus.DOCUMENTS_PENDING);
+        assertTransition(ApplicationStatus.APPROVED, ApplicationStatus.PENDING_APPROVAL);
         assertTransition(ApplicationStatus.APPROVED, ApplicationStatus.EXPIRED);
         assertTransition(ApplicationStatus.OFFER_ISSUED, ApplicationStatus.WITHDRAWN);
         assertTransition(ApplicationStatus.PENDING_DISBURSEMENT, ApplicationStatus.CANCELLED);
@@ -74,7 +76,7 @@ class ApplicationWorkflowTest {
     private static void assertRejected(ApplicationStatus from, ApplicationStatus to) {
         assertThatThrownBy(() -> ApplicationWorkflow.assertTransition(from, to))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining(from.name())
-                .hasMessageContaining(to.name());
+                .satisfies(thrown -> assertThat(((ValidationException) thrown).getViolations())
+                        .anySatisfy(violation -> assertThat(violation.message()).contains(from.name()).contains(to.name())));
     }
 }

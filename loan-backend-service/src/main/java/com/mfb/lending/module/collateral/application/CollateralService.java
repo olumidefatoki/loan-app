@@ -319,7 +319,7 @@ public class CollateralService {
                 case DOCUMENTS -> documents(current, request.outcome(), notes, actor);
                 case LEGAL -> legal(current, request.outcome(), notes, actor);
                 case INSURANCE -> insurance(current, request.outcome(), notes, actor);
-                case ENCUMBRANCE -> encumbrance(current, request, notes, actor);
+                case ENCUMBRANCE -> encumbrance(current, request, actor);
                 case APPROVE -> approve(current, actor);
                 case REJECT -> reject(current, notes, actor);
             }
@@ -422,7 +422,7 @@ public class CollateralService {
         saveCheck(current, current.ownershipStatus(), current.documentStatus(), current.legalStatus(), next, current.encumbranceStatus(), actor);
     }
 
-    private void encumbrance(CollateralRecord current, VerifyCollateralRequest request, String notes, AuthenticatedUser actor) {
+    private void encumbrance(CollateralRecord current, VerifyCollateralRequest request, AuthenticatedUser actor) {
         requireOutcome(request.outcome(), CheckOutcome.CLEAR, CheckOutcome.ENCUMBERED);
         if (request.outcome() == CheckOutcome.ENCUMBERED) {
             String holder = CollateralSupport.text(request.encumbranceHolder());
@@ -449,9 +449,6 @@ public class CollateralService {
         collaterals.releaseExternalEncumbrances(current.id());
         saveCheck(current, current.ownershipStatus(), current.documentStatus(), current.legalStatus(),
                 current.insuranceStatus(), EncumbranceStatus.CLEAR, actor);
-        if (notes == null) {
-            return;
-        }
     }
 
     private void approve(CollateralRecord current, AuthenticatedUser actor) {

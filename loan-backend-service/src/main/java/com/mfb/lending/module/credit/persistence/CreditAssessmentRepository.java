@@ -91,6 +91,18 @@ public class CreditAssessmentRepository {
                 new MapSqlParameterSource("id", id), ASSESSMENT_MAPPER);
     }
 
+    public Optional<CreditAssessmentRecord> findLatestForApplication(UUID applicationId) {
+        return one(
+                "SELECT " + ASSESSMENT_COLUMNS + """
+                 FROM credit_assessments
+                 WHERE application_id = :applicationId AND status <> 'CLOSED'
+                 ORDER BY created_at DESC
+                 LIMIT 1
+                """,
+                new MapSqlParameterSource("applicationId", applicationId),
+                ASSESSMENT_MAPPER);
+    }
+
     public void saveEvaluation(
             UUID id,
             AssessmentStatus status,

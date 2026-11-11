@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mfb.lending.module.auth.security.TotpVerifier;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -77,6 +79,9 @@ class CollateralManagementIT {
     private JdbcTemplate jdbc;
 
     @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
     private TotpVerifier totp;
 
     private String adminToken;
@@ -84,6 +89,14 @@ class CollateralManagementIT {
     @BeforeAll
     void signInAdministrator() {
         adminToken = staffSession(ADMIN_EMAIL, PASSWORD, ADMIN_MFA_SECRET);
+    }
+
+    @BeforeEach
+    void resetRateLimits() {
+        var keys = redisTemplate.keys("auth:rl:*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
     }
 
     @Test
@@ -98,7 +111,8 @@ class CollateralManagementIT {
         String id = created.path("collateral").path("id").asText();
         assertThat(created.path("collateral").path("reference").asText()).startsWith("CL");
         assertThat(created.path("collateral").path("collateralType").asText()).isEqualTo("RESIDENTIAL_PROPERTY");
-        assertThat(created.path("collateral").path("eligibleLendingValue").isNull()).isTrue();
+        JsonNode eligible = created.path("collateral").path("eligibleLendingValue");
+        assertThat(eligible.isNull() || eligible.isMissingNode()).isTrue();
         assertThat(created.path("valuations")).hasSize(1);
         assertThat(created.path("valuations").get(0).path("calculatedEligibleValue").decimalValue()).isEqualByComparingTo("700000.00");
         assertThat(created.path("valuations").get(0).path("status").asText()).isEqualTo("PENDING_APPROVAL");
@@ -154,11 +168,13 @@ class CollateralManagementIT {
         assertThat(second.path("availableAmount").decimalValue()).isEqualByComparingTo("0.00");
         JsonNode position = exchange(officer.token(), HttpMethod.GET, "/api/v1/loan-applications/" + fixture.firstApplicationId() + "/collaterals",
                 null, HttpStatus.OK).path("data");
+        assertThat(position.path("totalAllocated").decimalValue()).isEqualByComparingTo("1100000.00");
         assertThat(position.path("coverageRatio").decimalValue()).isEqualByComparingTo("2.200000");
         ResponseEntity<JsonNode> over = exchangeRaw(originator.token(), HttpMethod.POST,
-                "/api/v1/loan-applications/" + fixture.firstApplicationId() + "/collaterals",
-                Map.of("collateralId", UUID.randomUUID().toString(), "allocatedAmount", new BigDecimal("1.00"), "sharedSecurity", true));
-        assertThat(over.getStatusCode()).isIn(HttpStatus.NOT_FOUND, HttpStatus.CONFLICT);
+                "/api/v1/loan-applications/" + fixture.thirdApplicationId() + "/collaterals",
+                Map.of("collateralId", sharedId, "allocatedAmount", new BigDecimal("1.00"), "sharedSecurity", true));
+        assertThat(over.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(over.getBody().path("message").asText()).contains("over-allocated");
 
         String raced = approveCollateral(originator, officer, fixture.customerId());
         List<Integer> results = parallel(2, () -> exchangeRaw(originator.token(), HttpMethod.POST,
@@ -170,7 +186,7 @@ class CollateralManagementIT {
 
         jdbc.update("UPDATE collaterals SET valuation_expires_on = CURRENT_DATE - 1 WHERE id = ?", UUID.fromString(sharedId));
         ResponseEntity<JsonNode> expired = exchangeRaw(originator.token(), HttpMethod.POST,
-                "/api/v1/loan-applications/" + fixture.firstApplicationId() + "/collaterals",
+                "/api/v1/loan-applications/" + fixture.thirdApplicationId() + "/collaterals",
                 Map.of("collateralId", sharedId, "allocatedAmount", new BigDecimal("1.00"), "sharedSecurity", true));
         assertThat(expired.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(expired.getBody().path("message").asText()).contains("expired");
@@ -440,7 +456,8 @@ class CollateralManagementIT {
         jdbc.update("UPDATE loan_products SET status = 'ACTIVE', current_version_id = ? WHERE id = ?", versionId, productId);
         UUID first = application(customerId, productId, versionId, branchId);
         UUID second = application(customerId, productId, versionId, branchId);
-        return new Fixture(branchId, customerId, first, second);
+        UUID third = application(customerId, productId, versionId, branchId);
+        return new Fixture(branchId, customerId, first, second, third);
     }
 
     private UUID application(UUID customerId, UUID productId, UUID versionId, UUID branchId) {
@@ -517,6 +534,7 @@ class CollateralManagementIT {
                 ? exchangeRaw(null, HttpMethod.POST, "/api/v1/admin/auth/login", Map.of("identifier", email, "password", PASSWORD))
                         .getBody().path("data").path("accessToken").asText()
                 : staffSession(email, PASSWORD, secret);
+        assertThat(accessToken).isNotBlank();
         return new Staff(accessToken);
     }
 
@@ -556,7 +574,7 @@ class CollateralManagementIT {
         T run() throws Exception;
     }
 
-    private record Fixture(UUID branchId, UUID customerId, UUID firstApplicationId, UUID secondApplicationId) {
+    private record Fixture(UUID branchId, UUID customerId, UUID firstApplicationId, UUID secondApplicationId, UUID thirdApplicationId) {
     }
 
     private record Staff(String token) {

@@ -17,6 +17,7 @@ import com.mfb.lending.common.exception.ErrorCode;
 import com.mfb.lending.common.exception.ForbiddenException;
 import com.mfb.lending.common.exception.ResourceNotFoundException;
 import com.mfb.lending.common.exception.ValidationException;
+import com.mfb.lending.module.approval.application.ApprovalService;
 import com.mfb.lending.module.audit.application.AuditService;
 import com.mfb.lending.module.auth.domain.ClientContext;
 import com.mfb.lending.module.auth.domain.PrincipalType;
@@ -86,6 +87,7 @@ public class LoanApplicationService {
     private final CustomerEligibilityService eligibility;
     private final LoanApplicationViews views;
     private final AuditService audit;
+    private final ApprovalService approvals;
     private final Clock clock;
     private final TransactionTemplate transactions;
 
@@ -98,6 +100,7 @@ public class LoanApplicationService {
             CustomerEligibilityService eligibility,
             LoanApplicationViews views,
             AuditService audit,
+            ApprovalService approvals,
             Clock clock,
             TransactionTemplate transactions) {
         this.applications = applications;
@@ -108,6 +111,7 @@ public class LoanApplicationService {
         this.eligibility = eligibility;
         this.views = views;
         this.audit = audit;
+        this.approvals = approvals;
         this.clock = clock;
         this.transactions = transactions;
     }
@@ -339,6 +343,9 @@ public class LoanApplicationService {
         payload.put("fields", changed);
         applications.insertEvent(UUID.randomUUID(), id, revision == current.revisionNumber() ? "UPDATED" : "REVISED",
                 views.json(payload), actor.getId());
+        if (revision != current.revisionNumber()) {
+            approvals.noteRevision(id, actor.getId());
+        }
         return assemble(applications.find(id).orElseThrow(() -> new ResourceNotFoundException("Loan application")));
     }
 
