@@ -1,6 +1,5 @@
 package com.mfb.lending.module.collateral.application;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
