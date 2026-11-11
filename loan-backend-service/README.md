@@ -42,6 +42,8 @@ Select a profile with `SPRING_PROFILES_ACTIVE`.
 | `GET`/`POST`/`PUT` | `/api/v1/customers` | Bearer token. Customers manage their own record. Staff need `CUSTOMER_VIEW` or `CUSTOMER_CREATE`, limited to assigned branches |
 | `GET` | `/api/v1/loan-products` | Bearer token. Customers and originators see active products only. `LOAN_PRODUCT_VIEW` sees every status |
 | `POST`/`PUT` | `/api/v1/admin/loan-products` | Bearer token plus `LOAN_PRODUCT_MANAGE`. Approval, activation, suspension, and deactivation need `LOAN_PRODUCT_APPROVE` and a different administrator from the submitter |
+| `GET`/`POST` | `/api/v1/admin/integrations/core-banking/**` | Bearer token plus `INTEGRATION_VIEW`, `INTEGRATION_OPERATE`, `LOAN_DISBURSE`, or `REPAYMENT_PROCESS` for the matching operation |
+| `POST` | `/api/v1/webhooks/core-banking/events` | HMAC signature and a fresh timestamp. No bearer token |
 | `GET` | `/actuator/health` | Public status. Component details require the ops account |
 | `GET` | `/actuator/health/liveness` | Public |
 | `GET` | `/actuator/health/readiness` | Public. Checks database, Redis, and RabbitMQ |
@@ -103,7 +105,7 @@ com.mfb.lending
     ├── customer    onboarding, profiles, documents, and KYC
     ├── branch      branches table; administration comes in a later epic
     ├── audit       audit_logs table and security audit writes
-    └── integration integration_outbox and integration_inbox tables
+    └── integration outbox, inbox, and the core banking adapter
 ```
 
 Add a later epic as `com.mfb.lending.module.<name>` with its own API, application, and persistence packages. Application SQL goes through `JdbcTemplate` or `NamedParameterJdbcTemplate` with bound parameters.
@@ -140,6 +142,8 @@ Flyway migration `V1__create_foundation_tables.sql` creates:
 BVN, NIN, TIN, and account numbers are AES-GCM ciphertext. Duplicate detection uses HMAC-SHA256 hashes. API responses return a masked value. Document bytes stay in private storage; PostgreSQL stores the metadata and SHA-256 checksum. KYC providers are interfaces. Development and test use mock adapters and do not call a vendor URL.
 
 Loan, repayment, and other domain tables are left for their own epics.
+
+`V10__create_core_banking_tables.sql` adds the core banking instruction log: requests, responses, transactions, transaction events, webhook receipts, reconciliation batches, reconciliation items, and integration errors. It reuses `integration_outbox` and `integration_inbox`. The default provider is `mock`. `CORE_BANKING_PROVIDER=http` is inert until `CORE_BANKING_BASE_URL`, an authentication method, and operation paths are supplied. Those paths are not a guessed core banking contract. Do not point a developer machine at a production core.
 
 ## Pipeline
 

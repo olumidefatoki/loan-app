@@ -44,6 +44,19 @@ app:
       mode: RECORDED_ACCEPTANCE
     documents:
       directory: ${java.io.tmpdir}/mfb-loan-agreements-it
+  core-banking:
+    provider: mock
+    webhook:
+      secret: test-core-banking-webhook-secret
+      replay-window: 5m
+    retry:
+      max-attempts: 2
+      initial-backoff: 1ms
+      max-backoff: 5ms
+    circuit-breaker:
+      failure-threshold: 3
+      open-duration: 30s
+    outbox-poll-ms: 600000
 
 logging:
   level:

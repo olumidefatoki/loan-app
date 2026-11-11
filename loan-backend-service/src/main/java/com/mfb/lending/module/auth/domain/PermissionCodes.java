@@ -32,6 +32,8 @@ public final class PermissionCodes {
     public static final String APPROVAL_MATRIX_MANAGE = "APPROVAL_MATRIX_MANAGE";
     public static final String LOAN_OFFER_VIEW = "LOAN_OFFER_VIEW";
     public static final String LOAN_OFFER_MANAGE = "LOAN_OFFER_MANAGE";
+    public static final String INTEGRATION_VIEW = "INTEGRATION_VIEW";
+    public static final String INTEGRATION_OPERATE = "INTEGRATION_OPERATE";
 
     public static final String CUSTOMER_ROLE = "CUSTOMER";
     public static final String SYSTEM_ADMIN_ROLE = "SYSTEM_ADMIN";

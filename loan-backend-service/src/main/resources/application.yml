@@ -130,3 +130,27 @@ app:
       mode: RECORDED_ACCEPTANCE
     documents:
       directory: ${OFFER_DOCUMENT_DIR:${java.io.tmpdir}/mfb-loan-agreements}
+  core-banking:
+    provider: ${CORE_BANKING_PROVIDER:mock}
+    base-url: ${CORE_BANKING_BASE_URL:}
+    authentication-method: ${CORE_BANKING_AUTH_METHOD:}
+    client-id: ${CORE_BANKING_CLIENT_ID:}
+    client-secret: ${CORE_BANKING_CLIENT_SECRET:}
+    api-key: ${CORE_BANKING_API_KEY:}
+    api-key-header: ${CORE_BANKING_API_KEY_HEADER:X-Api-Key}
+    allow-insecure-tls: false
+    request-timeout: ${CORE_BANKING_REQUEST_TIMEOUT:5s}
+    connect-timeout: ${CORE_BANKING_CONNECT_TIMEOUT:2s}
+    outbox-poll-ms: ${CORE_BANKING_OUTBOX_POLL_MS:15000}
+    retry:
+      max-attempts: ${CORE_BANKING_RETRY_MAX_ATTEMPTS:3}
+      initial-backoff: ${CORE_BANKING_RETRY_INITIAL:200ms}
+      max-backoff: ${CORE_BANKING_RETRY_MAX:2s}
+      multiplier: ${CORE_BANKING_RETRY_MULTIPLIER:2}
+    circuit-breaker:
+      failure-threshold: ${CORE_BANKING_CIRCUIT_THRESHOLD:5}
+      open-duration: ${CORE_BANKING_CIRCUIT_OPEN:30s}
+    webhook:
+      secret: ${CORE_BANKING_WEBHOOK_SECRET:}
+      replay-window: ${CORE_BANKING_WEBHOOK_REPLAY_WINDOW:5m}
+    paths: {}
