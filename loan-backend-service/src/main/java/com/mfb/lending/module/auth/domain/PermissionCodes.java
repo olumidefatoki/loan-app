@@ -11,7 +11,13 @@ public final class PermissionCodes {
     public static final String LOAN_DISBURSE = "LOAN_DISBURSE";
     public static final String REPAYMENT_VIEW = "REPAYMENT_VIEW";
     public static final String REPAYMENT_PROCESS = "REPAYMENT_PROCESS";
+    public static final String COLLATERAL_VIEW = "COLLATERAL_VIEW";
+    public static final String COLLATERAL_MANAGE = "COLLATERAL_MANAGE";
     public static final String COLLATERAL_VERIFY = "COLLATERAL_VERIFY";
+    public static final String COLLATERAL_RELEASE = "COLLATERAL_RELEASE";
+    public static final String GUARANTOR_VIEW = "GUARANTOR_VIEW";
+    public static final String GUARANTOR_MANAGE = "GUARANTOR_MANAGE";
+    public static final String GUARANTOR_VERIFY = "GUARANTOR_VERIFY";
     public static final String REPORT_VIEW = "REPORT_VIEW";
     public static final String USER_MANAGE = "USER_MANAGE";
     public static final String SYSTEM_CONFIGURE = "SYSTEM_CONFIGURE";

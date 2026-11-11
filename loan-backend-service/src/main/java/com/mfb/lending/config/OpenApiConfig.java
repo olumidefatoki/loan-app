@@ -33,6 +33,9 @@ public class OpenApiConfig {
                                 Credit assessments keep the scoring model version, policy version, and calculation inputs that produced the decision. \
                                 A credit score cannot override a compliance hold or a mandatory policy failure. Policy exceptions need a second officer. \
                                 Credit bureau calls go through a provider port. This API does not publish a bureau vendor URL. \
+                                Collateral is approved security only after ownership, documents, legal status, insurance, and encumbrance checks, and an approved valuation. \
+                                Pledges cannot exceed the approved eligible value. Release needs a different authorised officer and a settled or discharged facility. \
+                                Guarantor identity numbers are encrypted. A guarantor is not approved security until consent, verification, a guarantee agreement, and acceptance by a second officer are on record. \
                                 Errors use the same envelope: success=false, code, message, errors, correlationId, timestamp, and path.""")
                         .version("v1")
                         .contact(new Contact().name("MFB Platform Engineering")))
