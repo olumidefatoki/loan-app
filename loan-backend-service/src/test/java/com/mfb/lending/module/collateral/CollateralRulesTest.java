@@ -43,16 +43,23 @@ class CollateralRulesTest {
                 CollateralType.VEHICLE,
                 new BigDecimal("100.01"),
                 new BigDecimal("70.00"),
-                new BigDecimal("60.00"),
+                new BigDecimal("50.00"),
                 new BigDecimal("0.50"));
         assertThat(accepted.calculatedEligibleValue()).isEqualByComparingTo("50.01");
-        assertThat(accepted.acceptedEligibleValue()).isEqualByComparingTo("50.01").isNotEqualByComparingTo("60.00");
+        assertThat(accepted.acceptedEligibleValue()).isEqualByComparingTo("50.00");
         assertThatThrownBy(() -> CollateralValuationCalculator.value(
                 CollateralType.VEHICLE,
                 new BigDecimal("100.01"),
                 new BigDecimal("80.00"),
                 new BigDecimal("60.00"),
                 new BigDecimal("0.50")))
+                .isInstanceOf(ValidationException.class);
+        assertThatThrownBy(() -> CollateralValuationCalculator.value(
+                CollateralType.LAND,
+                new BigDecimal("100.00"),
+                new BigDecimal("120.00"),
+                null,
+                null))
                 .isInstanceOf(ValidationException.class);
 
         assertThatThrownBy(() -> CollateralValuationCalculator.value(
