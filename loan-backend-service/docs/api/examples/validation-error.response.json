@@ -1,0 +1,1 @@
+{"success":false,"code":"VALIDATION_ERROR","message":"Request validation failed","errors":[{"field":"identifier","message":"must not be blank"},{"field":"password","message":"must not be blank"}],"correlationId":"d6aab388-1d8c-4fb1-8a0d-abfe0d1ac2a8","timestamp":"2026-11-24T13:01:43.370065Z","path":"/api/v1/auth/login"}

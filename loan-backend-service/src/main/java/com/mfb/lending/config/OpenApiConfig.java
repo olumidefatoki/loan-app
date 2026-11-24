@@ -1,12 +1,23 @@
 package com.mfb.lending.config;
 
 import com.mfb.lending.common.correlation.CorrelationIds;
+import java.util.List;
+
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.BooleanSchema;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.DateTimeSchema;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.ObjectSchema;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.customizers.OperationCustomizer;
@@ -54,6 +65,11 @@ public class OpenApiConfig {
                         .contact(new Contact().name("MFB Platform Engineering")))
                 .addServersItem(new Server().url("/").description("Current environment"))
                 .components(new Components()
+                        .addSchemas("ApiError", apiErrorSchema())
+                        .addSchemas("FieldViolation", new ObjectSchema()
+                                .addProperty("field", new StringSchema().description("Request field or header name"))
+                                .addProperty("message", new StringSchema())
+                                .required(List.of("field", "message")))
                         .addSecuritySchemes("bearerAuth", new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
@@ -66,20 +82,74 @@ public class OpenApiConfig {
     }
 
     @Bean
-    public GroupedOpenApi platformV1Api() {
+    public GroupedOpenApi platformV1Api(
+            OperationCustomizer correlationIdHeaderCustomizer,
+            OperationCustomizer errorEnvelopeCustomizer) {
         return GroupedOpenApi.builder()
                 .group("v1")
                 .pathsToMatch("/api/v1/**")
+                .addOperationCustomizer(correlationIdHeaderCustomizer)
+                .addOperationCustomizer(errorEnvelopeCustomizer)
                 .build();
     }
 
     @Bean
     public OperationCustomizer correlationIdHeaderCustomizer() {
-        return (operation, handlerMethod) -> operation.addParametersItem(new Parameter()
-                .in("header")
-                .name(CorrelationIds.HEADER)
-                .description("Caller-supplied correlation id. A UUID is generated when the header is missing or unsafe.")
-                .required(false)
-                .schema(new StringSchema()));
+        return (operation, handlerMethod) -> {
+            boolean present = operation.getParameters() != null && operation.getParameters().stream()
+                    .anyMatch(parameter -> CorrelationIds.HEADER.equals(parameter.getName()));
+            if (!present) {
+                operation.addParametersItem(new Parameter()
+                        .in("header")
+                        .name(CorrelationIds.HEADER)
+                        .description("Caller-supplied correlation id. A UUID is generated when the header is missing or unsafe.")
+                        .required(false)
+                        .schema(new StringSchema()));
+            }
+            return operation;
+        };
+    }
+
+    @Bean
+    public OperationCustomizer errorEnvelopeCustomizer() {
+        Content error = new Content().addMediaType("application/json", new MediaType()
+                .schema(new Schema<>().$ref("#/components/schemas/ApiError")));
+        return (operation, handlerMethod) -> {
+            ApiResponses responses = operation.getResponses() == null ? new ApiResponses() : operation.getResponses();
+            addError(responses, error, "400", "The request is invalid. code is VALIDATION_ERROR, BAD_REQUEST, DOCUMENT_REJECTED, or MALWARE_DETECTED.");
+            addError(responses, error, "401", "Authentication failed. code is UNAUTHORIZED, TOKEN_EXPIRED, INVALID_CREDENTIALS, OTP_INVALID, OTP_EXPIRED, OTP_REUSED, or MFA_INVALID.");
+            addError(responses, error, "403", "The caller is authenticated but not allowed. code is FORBIDDEN, ACCOUNT_DISABLED, ACCOUNT_NOT_VERIFIED, PASSWORD_EXPIRED, or MFA_ENROLLMENT_REQUIRED.");
+            addError(responses, error, "404", "The resource does not exist or is hidden from this caller. code is RESOURCE_NOT_FOUND.");
+            addError(responses, error, "409", "The resource state conflicts. code is CONFLICT, DUPLICATE_CUSTOMER, COMPLIANCE_HOLD, TOKEN_REVOKED, or TOKEN_REUSE.");
+            addError(responses, error, "423", "The account is temporarily locked. code is ACCOUNT_LOCKED.");
+            addError(responses, error, "429", "The caller exceeded the attempt limit. code is RATE_LIMITED.");
+            addError(responses, error, "500", "The request could not be completed. code is INTERNAL_ERROR or DATABASE_ERROR.");
+            addError(responses, error, "503", "A required dependency is unavailable. code is SERVICE_UNAVAILABLE.");
+            operation.setResponses(responses);
+            return operation;
+        };
+    }
+
+    private static void addError(ApiResponses responses, Content error, String status, String description) {
+        if (responses.containsKey(status)) {
+            return;
+        }
+        responses.addApiResponse(status, new ApiResponse().description(description).content(error));
+    }
+
+    private static Schema<?> apiErrorSchema() {
+        Schema<?> violation = new ObjectSchema()
+                .addProperty("field", new StringSchema())
+                .addProperty("message", new StringSchema());
+        return new ObjectSchema()
+                .description("Error envelope. Success responses use a different shape: success, code, message, data, correlationId, and timestamp.")
+                .addProperty("success", new BooleanSchema().example(false))
+                .addProperty("code", new StringSchema().example("VALIDATION_ERROR"))
+                .addProperty("message", new StringSchema().example("Request validation failed"))
+                .addProperty("errors", new ArraySchema().items(violation))
+                .addProperty("correlationId", new StringSchema().example("4f3c2a10-6b1e-4d2a-9c11-0a9b8c7d6e5f"))
+                .addProperty("timestamp", new DateTimeSchema().example("2026-11-24T13:00:00Z"))
+                .addProperty("path", new StringSchema().example("/api/v1/auth/login"))
+                .required(List.of("success", "code", "message", "errors", "correlationId", "timestamp", "path"));
     }
 }

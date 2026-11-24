@@ -1,0 +1,8 @@
+{
+  "loanAccountId": "5b1b1c2e-6c3a-4f0e-9c1a-0a0a0a0a0a0c",
+  "amount": 25000.0,
+  "channel": "BANK_TRANSFER",
+  "idempotencyKey": "repay-2026-11-24-0001",
+  "valueDate": "2026-11-24",
+  "externalReference": "NIP-0001"
+}

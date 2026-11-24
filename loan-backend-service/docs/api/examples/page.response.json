@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "code": "OK",
+  "message": "Success",
+  "data": {
+    "items": [],
+    "page": 0,
+    "size": 20,
+    "total": 0
+  },
+  "correlationId": "00000000-0000-4000-8000-000000000005",
+  "timestamp": "2026-11-24T13:00:00Z"
+}

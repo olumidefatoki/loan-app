@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "code": "OK",
+  "message": "Success",
+  "data": {
+    "tokenType": "Bearer",
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.example.rotated",
+    "refreshToken": "example-rotated-refresh-token",
+    "expiresIn": 900,
+    "sessionId": "5b1b1c2e-6c3a-4f0e-9c1a-0a0a0a0a0a0b",
+    "mfaRequired": false
+  },
+  "correlationId": "00000000-0000-4000-8000-000000000003",
+  "timestamp": "2026-11-24T13:00:00Z"
+}
