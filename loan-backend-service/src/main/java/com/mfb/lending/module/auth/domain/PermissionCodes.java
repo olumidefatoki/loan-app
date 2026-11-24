@@ -38,6 +38,15 @@ public final class PermissionCodes {
     public static final String COLLECTION_VIEW = "COLLECTION_VIEW";
     public static final String COLLECTION_MANAGE = "COLLECTION_MANAGE";
     public static final String RESTRUCTURING_APPROVE = "RESTRUCTURING_APPROVE";
+    public static final String NOTIFICATION_VIEW = "NOTIFICATION_VIEW";
+    public static final String NOTIFICATION_MANAGE = "NOTIFICATION_MANAGE";
+    public static final String AUDIT_VIEW = "AUDIT_VIEW";
+    public static final String COMPLIANCE_VIEW = "COMPLIANCE_VIEW";
+    public static final String COMPLIANCE_MANAGE = "COMPLIANCE_MANAGE";
+    public static final String COMPLIANCE_DECIDE = "COMPLIANCE_DECIDE";
+    public static final String COMPLAINT_VIEW = "COMPLAINT_VIEW";
+    public static final String COMPLAINT_MANAGE = "COMPLAINT_MANAGE";
+    public static final String OPERATIONS_VIEW = "OPERATIONS_VIEW";
 
     public static final String CUSTOMER_ROLE = "CUSTOMER";
     public static final String SYSTEM_ADMIN_ROLE = "SYSTEM_ADMIN";

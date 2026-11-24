@@ -54,6 +54,8 @@ import com.mfb.lending.module.loanapplication.application.ApplicationWorkflow;
 import com.mfb.lending.module.loanapplication.domain.ApplicationRecord;
 import com.mfb.lending.module.loanapplication.domain.ApplicationStatus;
 import com.mfb.lending.module.loanapplication.persistence.LoanApplicationRepository;
+import com.mfb.lending.module.notification.application.NotificationEvent;
+import com.mfb.lending.module.notification.application.NotificationPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -68,6 +70,7 @@ public class ApprovalService {
     private final CreditAssessmentRepository assessments;
     private final ApprovalViews views;
     private final AuditService audit;
+    private final NotificationPublisher notifications;
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final TransactionTemplate transactions;
@@ -79,6 +82,7 @@ public class ApprovalService {
             CreditAssessmentRepository assessments,
             ApprovalViews views,
             AuditService audit,
+            NotificationPublisher notifications,
             ObjectMapper objectMapper,
             Clock clock,
             TransactionTemplate transactions) {
@@ -88,6 +92,7 @@ public class ApprovalService {
         this.assessments = assessments;
         this.views = views;
         this.audit = audit;
+        this.notifications = notifications;
         this.objectMapper = objectMapper;
         this.clock = clock;
         this.transactions = transactions;
@@ -166,6 +171,21 @@ public class ApprovalService {
         return approvals.listHistory(id).stream().map(views::history).toList();
     }
 
+    private void notifyDecision(ApprovalResponse response, ApprovalDecision decision) {
+        String event = switch (decision) {
+            case APPROVE -> "APPROVED".equals(response.status()) ? "APPLICATION_APPROVAL" : null;
+            case REJECT -> "APPLICATION_REJECTION";
+            case REQUEST_INFORMATION -> "ADDITIONAL_INFORMATION_REQUEST";
+            default -> null;
+        };
+        if (event == null) {
+            return;
+        }
+        applications.find(response.applicationId()).ifPresent(application -> notifications.publish(NotificationEvent.of(
+                event, application.customerId(), null, event + ":" + response.id(),
+                Map.of("reference", application.reference()))));
+    }
+
     private ApprovalResponse decide(
             UUID id,
             ApprovalDecision decision,
@@ -180,6 +200,7 @@ public class ApprovalService {
                 "stage", response.stage(),
                 "status", response.status(),
                 "amount", response.amount().toPlainString()));
+        notifyDecision(response, decision);
         return response;
     }
 

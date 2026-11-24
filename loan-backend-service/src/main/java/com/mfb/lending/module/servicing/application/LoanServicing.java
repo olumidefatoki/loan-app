@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mfb.lending.common.exception.ConflictException;
@@ -20,6 +21,8 @@ import com.mfb.lending.common.exception.ResourceNotFoundException;
 import com.mfb.lending.common.exception.ValidationException;
 import com.mfb.lending.module.audit.application.AuditService;
 import com.mfb.lending.module.integration.corebanking.UnitOfWork;
+import com.mfb.lending.module.notification.application.NotificationEvent;
+import com.mfb.lending.module.notification.application.NotificationPublisher;
 import com.mfb.lending.module.loancalculation.LoanCalculationEngine;
 import com.mfb.lending.module.loancalculation.LoanCalculationEngine.LoanQuote;
 import com.mfb.lending.module.loanproduct.domain.DayCountConvention;
@@ -79,6 +82,7 @@ public class LoanServicing {
     private final AuditService audit;
     private final ObjectMapper objectMapper;
     private final java.time.Clock clock;
+    private NotificationPublisher notifications = NotificationPublisher.noop();
 
     public LoanServicing(
             ServicingStore store,
@@ -95,6 +99,11 @@ public class LoanServicing {
         this.audit = audit;
         this.objectMapper = objectMapper;
         this.clock = clock;
+    }
+
+    @Autowired(required = false)
+    public void setNotificationPublisher(NotificationPublisher notifications) {
+        this.notifications = notifications == null ? NotificationPublisher.noop() : notifications;
     }
 
     public LoanAccount activateFromDisbursement(UUID applicationId, String coreReference, UUID actorId, String actorName) {
@@ -206,6 +215,9 @@ public class LoanServicing {
         snapshot(active, disbursementDate, "ACTIVATED");
         store.insertEvent(event(accountId, "ACTIVATED", "{\"coreReference\":\"" + booking.coreReference() + "\"}", actorId, now));
         audit("LOAN_ACCOUNT_ACTIVATED", accountId, actorName, Map.of("reference", active.reference(), "coreReference", booking.coreReference()));
+        notifications.publish(NotificationEvent.of(
+                "LOAN_DISBURSEMENT", active.customerId(), null, "loan-disbursement:" + active.id(),
+                Map.of("reference", active.reference())));
         return active;
     }
 
@@ -666,8 +678,14 @@ public class LoanServicing {
         store.insertEvent(event(account.id(), "REPAYMENT_POSTED", json(Map.of("repaymentId", repayment.id().toString(), "amount", repayment.amount().toPlainString())), actorId, Instant.now(clock)));
         if (status == LoanAccountStatus.CLOSED) {
             store.insertEvent(event(account.id(), "CLOSED", "{\"reason\":\"Repayment cleared the loan\"}", actorId, Instant.now(clock)));
+            notifications.publish(NotificationEvent.of(
+                    "LOAN_SETTLEMENT", account.customerId(), null, "loan-settlement:" + account.id(),
+                    Map.of("reference", account.reference())));
         }
         audit("LOAN_REPAYMENT_POSTED", repayment.id(), actorName, Map.of("reference", repayment.reference(), "state", "POSTED"));
+        notifications.publish(NotificationEvent.of(
+                "PAYMENT_CONFIRMATION", account.customerId(), null, "payment:" + repayment.id(),
+                Map.of("reference", repayment.reference(), "amount", repayment.amount().toPlainString())));
         return posted;
     }
 

@@ -36,6 +36,8 @@ import com.mfb.lending.module.customer.persistence.CustomerProfileRepository;
 import com.mfb.lending.module.customer.persistence.CustomerQuery;
 import com.mfb.lending.module.customer.persistence.CustomerRepository;
 import com.mfb.lending.module.customer.persistence.LinkedUser;
+import com.mfb.lending.module.notification.application.NotificationEvent;
+import com.mfb.lending.module.notification.application.NotificationPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -49,6 +51,7 @@ public class CustomerService {
     private final CustomerEligibilityService eligibility;
     private final IdentitySeal seal;
     private final AuditService audit;
+    private final NotificationPublisher notifications;
     private final Clock clock;
     private final TransactionTemplate transactions;
 
@@ -59,6 +62,7 @@ public class CustomerService {
             CustomerEligibilityService eligibility,
             IdentitySeal seal,
             AuditService audit,
+            NotificationPublisher notifications,
             Clock clock,
             TransactionTemplate transactions) {
         this.customers = customers;
@@ -67,6 +71,7 @@ public class CustomerService {
         this.eligibility = eligibility;
         this.seal = seal;
         this.audit = audit;
+        this.notifications = notifications;
         this.clock = clock;
         this.transactions = transactions;
     }
@@ -151,6 +156,9 @@ public class CustomerService {
                 "customerReference", saved.reference(),
                 "customerType", kind.name(),
                 "channel", channel.name()));
+        notifications.publish(NotificationEvent.of(
+                "CUSTOMER_REGISTRATION", saved.id(), saved.userId(), "customer-registration:" + saved.id(),
+                Map.of("reference", saved.reference())));
         return views.detail(saved);
     }
 

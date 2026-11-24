@@ -62,6 +62,8 @@ import com.mfb.lending.module.loanproduct.domain.ProductStatus;
 import com.mfb.lending.module.loanproduct.domain.RepaymentFrequency;
 import com.mfb.lending.module.loanproduct.persistence.LoanProductComponentRepository;
 import com.mfb.lending.module.loanproduct.persistence.LoanProductRepository;
+import com.mfb.lending.module.notification.application.NotificationEvent;
+import com.mfb.lending.module.notification.application.NotificationPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -88,6 +90,7 @@ public class LoanApplicationService {
     private final LoanApplicationViews views;
     private final AuditService audit;
     private final ApprovalService approvals;
+    private final NotificationPublisher notifications;
     private final Clock clock;
     private final TransactionTemplate transactions;
 
@@ -101,6 +104,7 @@ public class LoanApplicationService {
             LoanApplicationViews views,
             AuditService audit,
             ApprovalService approvals,
+            NotificationPublisher notifications,
             Clock clock,
             TransactionTemplate transactions) {
         this.applications = applications;
@@ -112,6 +116,7 @@ public class LoanApplicationService {
         this.views = views;
         this.audit = audit;
         this.approvals = approvals;
+        this.notifications = notifications;
         this.clock = clock;
         this.transactions = transactions;
     }
@@ -197,6 +202,9 @@ public class LoanApplicationService {
         audit.record("LOAN_APPLICATION_SUBMITTED", "loan_application", id.toString(), actor.getUsername(), client, Map.of(
                 "reference", response.reference(),
                 "revision", response.revisionNumber()));
+        notifications.publish(NotificationEvent.of(
+                "APPLICATION_SUBMISSION", response.customerId(), null, "application-submitted:" + id,
+                Map.of("reference", response.reference())));
         return response;
     }
 

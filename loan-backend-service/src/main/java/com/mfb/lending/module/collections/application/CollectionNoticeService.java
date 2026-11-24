@@ -20,6 +20,8 @@ import com.mfb.lending.module.collections.domain.CollectionModels.LoanPosition;
 import com.mfb.lending.module.collections.domain.CollectionModels.MessageTemplate;
 import com.mfb.lending.module.collections.domain.CollectionModels.PostedRepayment;
 import com.mfb.lending.module.collections.persistence.CollectionsStore;
+import com.mfb.lending.module.notification.application.NotificationJobs;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,6 +31,7 @@ public class CollectionNoticeService {
     private final ServicingExposureSource exposures;
     private final CollectionsProperties properties;
     private final java.time.Clock clock;
+    private NotificationJobs notifications;
 
     public CollectionNoticeService(
             CollectionsStore store,
@@ -39,6 +42,11 @@ public class CollectionNoticeService {
         this.exposures = exposures;
         this.properties = properties;
         this.clock = clock;
+    }
+
+    @Autowired(required = false)
+    public void setNotificationJobs(NotificationJobs notifications) {
+        this.notifications = notifications;
     }
 
     public int prepare(LocalDate asOf) {
@@ -84,6 +92,9 @@ public class CollectionNoticeService {
     }
 
     public int dispatch() {
+        if (notifications != null) {
+            return notifications.importCollectionOutbox();
+        }
         int sent = 0;
         for (int batch = 0; batch < 50; batch++) {
             List<CollectionNotification> pending = store.pendingNotifications(100);

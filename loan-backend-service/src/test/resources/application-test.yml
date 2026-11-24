@@ -48,6 +48,11 @@ app:
     jobs-enabled: false
   reporting:
     jobs-enabled: false
+  platform:
+    jobs-enabled: false
+    initial-backoff: 1ms
+    max-backoff: 5ms
+    complaint-sla: 48h
     directory: ${java.io.tmpdir}/mfb-report-exports-it
     async-threshold: 500
     max-rows: 50000

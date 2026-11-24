@@ -67,6 +67,8 @@ import com.mfb.lending.module.loanproduct.domain.ProductComponents;
 import com.mfb.lending.module.loanproduct.domain.RoundingMethod;
 import com.mfb.lending.module.loanproduct.persistence.LoanProductComponentRepository;
 import com.mfb.lending.module.loanproduct.persistence.LoanProductRepository;
+import com.mfb.lending.module.notification.application.NotificationEvent;
+import com.mfb.lending.module.notification.application.NotificationPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -86,6 +88,7 @@ public class LoanOfferService {
     private final OfferViews views;
     private final OfferProperties properties;
     private final AuditService audit;
+    private final NotificationPublisher notifications;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactions;
     private final TransactionTemplate committed;
@@ -104,6 +107,7 @@ public class LoanOfferService {
             OfferViews views,
             OfferProperties properties,
             AuditService audit,
+            NotificationPublisher notifications,
             ObjectMapper objectMapper,
             TransactionTemplate transactions,
             java.time.Clock clock) {
@@ -119,6 +123,7 @@ public class LoanOfferService {
         this.views = views;
         this.properties = properties;
         this.audit = audit;
+        this.notifications = notifications;
         this.objectMapper = objectMapper;
         this.transactions = transactions;
         this.committed = new TransactionTemplate(transactions.getTransactionManager());
@@ -136,6 +141,9 @@ public class LoanOfferService {
                     "status", response.status(),
                     "offerVersion", response.offerVersion(),
                     "fingerprint", response.calculationFingerprint()));
+            notifications.publish(NotificationEvent.of(
+                    "LOAN_OFFER", response.customerId(), null, "loan-offer:" + response.id(),
+                    Map.of("reference", response.reference())));
             return response;
         } catch (RuntimeException ex) {
             written.forEach(files::delete);

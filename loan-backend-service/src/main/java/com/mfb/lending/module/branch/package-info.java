@@ -1,5 +1,4 @@
 /**
- * Branch reference data. The {@code branches} table is part of the foundation schema.
- * Branch administration APIs are intentionally left for a later epic.
+ * Branch reference data and branch administration.
  */
 package com.mfb.lending.module.branch;

@@ -179,3 +179,18 @@ app:
     directory: ${REPORT_EXPORT_DIR:${java.io.tmpdir}/mfb-report-exports}
     snapshot-cron: "0 50 1 * * *"
     export-poll-ms: 15000
+  platform:
+    jobs-enabled: true
+    notification-poll-ms: 15000
+    notification-batch: 50
+    max-attempts: 3
+    initial-backoff: 1m
+    max-backoff: 1h
+    backoff-multiplier: 2
+    complaint-sla: 48h
+    evidence-retention-years: 7
+    complaint-escalation-cron: "0 10 * * * *"
+    sms-provider: mock-sms
+    email-provider: mock-email
+    push-provider: mock-push
+    in-app-provider: in-app

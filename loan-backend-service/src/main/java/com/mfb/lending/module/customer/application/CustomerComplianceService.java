@@ -50,6 +50,8 @@ import com.mfb.lending.module.customer.persistence.CustomerDocumentRepository;
 import com.mfb.lending.module.customer.persistence.CustomerKycRepository;
 import com.mfb.lending.module.customer.persistence.CustomerProfileRepository;
 import com.mfb.lending.module.customer.persistence.CustomerRepository;
+import com.mfb.lending.module.notification.application.NotificationEvent;
+import com.mfb.lending.module.notification.application.NotificationPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -71,6 +73,8 @@ public class CustomerComplianceService {
     private final PepScreener pepScreener;
     private final AmlRiskAssessor amlRiskAssessor;
     private final AuditService audit;
+    private final ScreeningAlertSink alerts;
+    private final NotificationPublisher notifications;
     private final Clock clock;
     private final TransactionTemplate transactions;
 
@@ -90,6 +94,8 @@ public class CustomerComplianceService {
             PepScreener pepScreener,
             AmlRiskAssessor amlRiskAssessor,
             AuditService audit,
+            ScreeningAlertSink alerts,
+            NotificationPublisher notifications,
             Clock clock,
             TransactionTemplate transactions) {
         this.customers = customers;
@@ -107,6 +113,8 @@ public class CustomerComplianceService {
         this.pepScreener = pepScreener;
         this.amlRiskAssessor = amlRiskAssessor;
         this.audit = audit;
+        this.alerts = alerts;
+        this.notifications = notifications;
         this.clock = clock;
         this.transactions = transactions;
     }
@@ -120,6 +128,9 @@ public class CustomerComplianceService {
                 "kycStatus", saved.kycStatus().name(),
                 "complianceHold", saved.complianceHold(),
                 "riskClassification", saved.riskClassification().name()));
+        notifications.publish(NotificationEvent.of(
+                "KYC_STATUS", id, saved.userId(), "kyc:" + id + ":" + saved.updatedAt(),
+                Map.of("status", saved.kycStatus().name())));
         return views.kyc(saved);
     }
 
@@ -245,10 +256,16 @@ public class CustomerComplianceService {
         }
         ScreeningOutcome sanctions = outcome.sanctions().outcome();
         ScreeningOutcome pep = outcome.pep().outcome();
-        kyc.insertScreening(screening(customer.id(), ScreeningType.SANCTIONS, sanctions, outcome.sanctions().detail(), now));
-        kyc.insertScreening(screening(customer.id(), ScreeningType.PEP, pep, outcome.pep().detail(), now));
+        ScreeningRecord sanctionsRecord = screening(customer.id(), ScreeningType.SANCTIONS, sanctions, outcome.sanctions().detail(), now);
+        ScreeningRecord pepRecord = screening(customer.id(), ScreeningType.PEP, pep, outcome.pep().detail(), now);
         ScreeningOutcome amlOutcome = amlOutcome(outcome.aml().classification());
-        kyc.insertScreening(screening(customer.id(), ScreeningType.AML, amlOutcome, outcome.aml().detail(), now));
+        ScreeningRecord amlRecord = screening(customer.id(), ScreeningType.AML, amlOutcome, outcome.aml().detail(), now);
+        kyc.insertScreening(sanctionsRecord);
+        kyc.insertScreening(pepRecord);
+        kyc.insertScreening(amlRecord);
+        alerts.record(customer.id(), sanctionsRecord.id(), "SANCTIONS", sanctions.name(), outcome.sanctions().detail());
+        alerts.record(customer.id(), pepRecord.id(), "PEP", pep.name(), outcome.pep().detail());
+        alerts.record(customer.id(), amlRecord.id(), "AML", amlOutcome.name(), outcome.aml().detail());
         if (sanctions == ScreeningOutcome.MATCH) {
             openReview(customer.id(), null, ReviewCaseType.SANCTIONS_MATCH, true, outcome.sanctions().detail(), now);
         }
