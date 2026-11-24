@@ -60,7 +60,6 @@ public class ProviderRegistry implements NotificationProviders {
     }
 }
 
-@Component
 class LoggingNotificationProvider implements NotificationProvider {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingNotificationProvider.class);

@@ -11,6 +11,7 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mfb.lending.common.correlation.CorrelationIds;
+import com.mfb.lending.common.security.OutboundEndpoint;
 import com.mfb.lending.config.CoreBankingProperties;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -38,18 +39,26 @@ public class HttpCoreBankingClient implements CoreBankingClient {
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
         factory.setReadTimeout(properties.getRequestTimeout());
         this.client = RestClient.builder()
-                .baseUrl(trim(properties.getBaseUrl()))
+                .baseUrl(OutboundEndpoint.requireBaseUrl(properties.getBaseUrl()))
                 .requestFactory(factory)
                 .build();
     }
 
     @Override
     public CoreTransportResponse exchange(CoreTransportRequest request) {
-        String path = properties.path(request.operation().name());
-        if (path.isBlank()) {
+        String configured = properties.path(request.operation().name());
+        if (configured.isBlank()) {
             throw new CoreTransportException(
                     CoreTransportException.Failure.NOT_CONFIGURED,
                     "No core banking path is configured for " + request.operation().name());
+        }
+        final String path;
+        try {
+            path = OutboundEndpoint.requireRelativePath(configured);
+        } catch (IllegalStateException ex) {
+            throw new CoreTransportException(
+                    CoreTransportException.Failure.NOT_CONFIGURED,
+                    "Core banking path is not a relative path");
         }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("operation", request.operation().name());
@@ -155,10 +164,4 @@ public class HttpCoreBankingClient implements CoreBankingClient {
         return false;
     }
 
-    private static String trim(String url) {
-        if (url == null) {
-            return "";
-        }
-        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
-    }
 }

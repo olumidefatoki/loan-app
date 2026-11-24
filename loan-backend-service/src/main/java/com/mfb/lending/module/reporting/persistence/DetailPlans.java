@@ -246,9 +246,18 @@ final class DetailPlans {
     private static String group(List<Column> columns) {
         List<String> parts = new ArrayList<>();
         for (Column column : columns) {
-            if (!column.aggregate()) {
-                parts.add(column.expression());
+            if (column.aggregate()) {
+                continue;
             }
+            String expression = column.expression();
+            int zone = expression.indexOf(" AT TIME ZONE ");
+            if (zone > 0) {
+                String source = expression.substring(0, zone).replace("(", "").trim();
+                if (!parts.contains(source)) {
+                    parts.add(source);
+                }
+            }
+            parts.add(expression);
         }
         return parts.isEmpty() ? "" : " GROUP BY " + String.join(", ", parts);
     }

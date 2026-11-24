@@ -17,6 +17,8 @@ app:
     ops-username: ops
     ops-password: test-ops-password
     allowed-origins: []
+    api-rate-limit:
+      enabled: false
   auth:
     jwt:
       hmac-secret: dGVzdC1zdWl0ZS1qd3QtaG1hYy1zZWNyZXQtMzJiISE=

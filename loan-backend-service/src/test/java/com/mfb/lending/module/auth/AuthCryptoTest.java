@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -100,6 +101,16 @@ class AuthCryptoTest {
         assertThatThrownBy(() -> service.parseAccessToken(mfaToken))
                 .isInstanceOf(UnauthorizedException.class);
         assertThat(service.parseMfaToken(mfaToken)).isEqualTo(userId);
+
+        String[] parts = accessToken.split("\\.");
+        String noneHeader = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"none\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> service.parseAccessToken(noneHeader + "." + parts[1] + "."))
+                .isInstanceOf(UnauthorizedException.class);
+        String hs384Header = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"HS384\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> service.parseAccessToken(hs384Header + "." + parts[1] + "." + parts[2]))
+                .isInstanceOf(UnauthorizedException.class);
     }
 
     private static AuthProperties properties() {

@@ -5,7 +5,15 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +21,7 @@ import com.mfb.lending.common.exception.ApiException;
 import com.mfb.lending.common.exception.ConflictException;
 import com.mfb.lending.common.exception.ErrorCode;
 import com.mfb.lending.common.exception.ResourceNotFoundException;
+import com.mfb.lending.common.exception.UnauthorizedException;
 import com.mfb.lending.config.CoreBankingProperties;
 import com.mfb.lending.module.loanapplication.domain.ApplicationStatus;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -56,6 +65,48 @@ class CoreBankingWorkflowTest {
         assertThatThrownBy(() -> harness.disbursements.disburse(instruction(harness, "disburse-002"), null))
                 .isInstanceOf(ConflictException.class);
         assertThat(harness.client.calls(CoreOperation.SUBMIT_DISBURSEMENT)).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentDisbursementAndRepaymentPostOnce() throws Exception {
+        Harness harness = harness(5);
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        try {
+            List<Future<CoreTransaction>> disbursements = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                disbursements.add(pool.submit(() -> harness.disbursements.disburse(instruction(harness, "disburse-race"), null)));
+            }
+            Set<UUID> disbursementIds = new HashSet<>();
+            for (Future<CoreTransaction> future : disbursements) {
+                disbursementIds.add(future.get(10, TimeUnit.SECONDS).id());
+            }
+            assertThat(disbursementIds).hasSize(1);
+            assertThat(harness.client.calls(CoreOperation.SUBMIT_DISBURSEMENT)).isEqualTo(1);
+            assertThat(harness.client.calls(CoreOperation.CREATE_LOAN_ACCOUNT)).isEqualTo(1);
+
+            List<Future<CoreTransaction>> repayments = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                repayments.add(pool.submit(() -> harness.repayments.repay(repayment(harness, "repay-race", "100.00"), null)));
+            }
+            Set<UUID> repaymentIds = new HashSet<>();
+            for (Future<CoreTransaction> future : repayments) {
+                repaymentIds.add(future.get(10, TimeUnit.SECONDS).id());
+            }
+            assertThat(repaymentIds).hasSize(1);
+            assertThat(harness.client.calls(CoreOperation.SUBMIT_REPAYMENT)).isEqualTo(1);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void staleWebhookIsRejected() throws Exception {
+        Harness harness = harness(5);
+        byte[] body = webhook(harness, "msg-stale", "REPAYMENT_POSTED", "CB000000000099", "repay-stale", "10.00", "provider-1");
+        String timestamp = Long.toString(Instant.now().minus(Duration.ofMinutes(10)).getEpochSecond());
+        String signature = WebhookSignature.sign("test-secret", timestamp, body);
+        assertThatThrownBy(() -> harness.webhooks.accept(body, "msg-stale", timestamp, signature))
+                .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test

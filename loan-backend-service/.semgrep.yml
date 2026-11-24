@@ -1,0 +1,23 @@
+rules:
+  - id: jdbc-request-parameter-concatenation
+    languages: [java]
+    severity: ERROR
+    message: Bind SQL parameters. Do not concatenate a request parameter into a JDBC statement.
+    patterns:
+      - pattern-either:
+          - pattern: $JDBC.query($SQL + $REQ.getParameter(...), ...)
+          - pattern: $JDBC.queryForObject($SQL + $REQ.getParameter(...), ...)
+          - pattern: $JDBC.update($SQL + $REQ.getParameter(...), ...)
+          - pattern: $JDBC.query($SQL + $REQ.getHeader(...), ...)
+  - id: jwt-none-algorithm
+    languages: [java]
+    severity: ERROR
+    message: Do not accept the none JWT algorithm.
+    pattern: JWSAlgorithm.NONE
+  - id: trust-all-tls
+    languages: [java]
+    severity: ERROR
+    message: Do not disable TLS hostname or certificate checks.
+    pattern-either:
+      - pattern: new TrustAllStrategy()
+      - pattern: NoopHostnameVerifier.INSTANCE

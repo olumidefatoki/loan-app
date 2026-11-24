@@ -1,0 +1,58 @@
+groups:
+  - name: lending-platform
+    rules:
+      - alert: LendingApiDown
+        expr: up{job="lending-api"} == 0
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: The lending API metrics endpoint is down
+
+      - alert: LendingReadinessFailing
+        expr: increase(http_server_requests_seconds_count{uri="/actuator/health/readiness",status=~"5.."}[5m]) > 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: Readiness checks are failing
+
+      - alert: LendingErrorRate
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 1) > 0.02
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: API 5xx rate is above 2 percent
+
+      - alert: LendingLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{uri!~"/actuator.*"}[5m]))) > 2
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: API p95 is above 2 seconds
+
+      - alert: CoreBankingUnknownOutcome
+        expr: increase(core_banking_transactions_total{state="UNKNOWN"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: A core banking instruction has an unknown outcome
+
+      - alert: CoreBankingReconciliationMismatch
+        expr: increase(core_banking_reconciliation_mismatches_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: Core banking reconciliation found a mismatch
+
+      - alert: CoreBankingDeadLetter
+        expr: increase(core_banking_dead_letters_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: A core banking instruction reached the dead-letter path

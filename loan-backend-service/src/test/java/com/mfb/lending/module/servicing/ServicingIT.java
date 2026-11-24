@@ -85,7 +85,7 @@ class ServicingIT {
         assertThat(reconciliation.path("data").path("difference").decimalValue()).isEqualByComparingTo("0");
         assertThat(reconciliation.path("data").path("currencyCode").asText()).isEqualTo("NGN");
 
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM chart_of_accounts", Integer.class)).isEqualTo(10);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM chart_of_accounts", Integer.class)).isEqualTo(11);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM accounting_posting_rules", Integer.class)).isPositive();
         assertThat(jdbc.queryForObject(
                 "SELECT priority FROM repayment_allocation_policies WHERE version_number = 1", String.class))

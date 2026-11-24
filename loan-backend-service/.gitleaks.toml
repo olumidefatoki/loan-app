@@ -1,0 +1,15 @@
+title = "MFB lending"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Disposable local compose and test fixtures. Production configuration has no secret values."
+paths = [
+  '''(?i)(^|/)loan-backend-service/\.env\.example$''',
+  '''(?i)(^|/)\.env\.example$''',
+  '''(?i)(^|/)loan-backend-service/docker-compose\.yml$''',
+  '''(?i)(^|/)docker-compose\.yml$''',
+  '''(?i)(^|/)loan-backend-service/src/test/''',
+  '''(?i)(^|/)src/test/''',
+]

@@ -24,6 +24,8 @@ springdoc:
     enabled: false
 
 app:
+  core-banking:
+    provider: ${CORE_BANKING_PROVIDER:http}
   security:
     ops-username: ${OPS_USERNAME}
     ops-password: ${OPS_PASSWORD}

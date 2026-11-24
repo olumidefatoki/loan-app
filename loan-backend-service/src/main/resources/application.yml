@@ -1,6 +1,8 @@
 spring:
   application:
     name: loan-backend-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   jackson:
     default-property-inclusion: non_null
     serialization:
@@ -54,12 +56,20 @@ springdoc:
     path: /swagger-ui.html
 
 management:
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   endpoints:
     web:
       base-path: /actuator
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
+    info:
+      access: read-only
+    prometheus:
+      access: read-only
     health:
       probes:
         enabled: true
@@ -94,6 +104,11 @@ logging:
     org.springframework.security: INFO
 
 app:
+  security:
+    api-rate-limit:
+      enabled: true
+      max-requests: ${API_RATE_LIMIT_MAX:600}
+      window: ${API_RATE_LIMIT_WINDOW:1m}
   auth:
     jwt:
       issuer: mfb-lending

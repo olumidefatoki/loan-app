@@ -29,16 +29,16 @@ app:
     allowed-origins: "${APP_ALLOWED_ORIGINS:http://localhost:3000}"
   auth:
     jwt:
-      hmac-secret: ${JWT_HMAC_SECRET:bG9jYWwtZGV2LWp3dC1obWFjLXNlY3JldC1rZXktMzJiIQ==}
+      hmac-secret: ${JWT_HMAC_SECRET}
     otp:
-      pepper: ${OTP_PEPPER:local-dev-otp-pepper-value}
-    encryption-key: ${APP_DATA_KEY:bG9jYWwtZGV2LWFlcy0yNTYtZGF0YS1rZXktMzJiISE=}
+      pepper: ${OTP_PEPPER}
+    encryption-key: ${APP_DATA_KEY}
     bootstrap:
-      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@mfb.local}
-      password: ${BOOTSTRAP_ADMIN_PASSWORD:Str0ng-Passw0rd!}
-      phone-number: ${BOOTSTRAP_ADMIN_PHONE:+2348000000001}
+      email: ${BOOTSTRAP_ADMIN_EMAIL:}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+      phone-number: ${BOOTSTRAP_ADMIN_PHONE:}
       full-name: ${BOOTSTRAP_ADMIN_NAME:Platform Administrator}
-      mfa-secret: ${BOOTSTRAP_ADMIN_MFA_SECRET:JBSWY3DPEHPK3PXP}
+      mfa-secret: ${BOOTSTRAP_ADMIN_MFA_SECRET:}
 
 logging:
   level:

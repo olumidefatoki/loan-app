@@ -109,6 +109,9 @@ public class JwtService {
     private JWTClaimsSet verifiedClaims(String token, String expectedPurpose) {
         try {
             SignedJWT jwt = SignedJWT.parse(token);
+            if (!JWSAlgorithm.HS256.equals(jwt.getHeader().getAlgorithm())) {
+                throw invalid();
+            }
             if (!jwt.verify(new MACVerifier(secret))) {
                 throw invalid();
             }

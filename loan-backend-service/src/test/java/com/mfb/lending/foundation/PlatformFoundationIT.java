@@ -179,6 +179,11 @@ class PlatformFoundationIT {
                 JsonNode.class);
 
         assertThat(version.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(version.getHeaders().getFirst("X-Content-Type-Options")).isEqualTo("nosniff");
+        assertThat(version.getHeaders().getFirst("X-Frame-Options")).isEqualTo("DENY");
+        assertThat(version.getHeaders().getFirst("Content-Security-Policy")).contains("default-src 'none'");
+        assertThat(version.getHeaders().getFirst("Referrer-Policy")).isEqualTo("no-referrer");
+        assertThat(version.getHeaders().getFirst("Cache-Control")).contains("no-store");
         assertThat(version.getHeaders().getFirst(CorrelationIds.HEADER)).isEqualTo("it-correlation-123");
         assertThat(version.getBody().path("success").asBoolean()).isTrue();
         assertThat(version.getBody().path("correlationId").asText()).isEqualTo("it-correlation-123");
@@ -221,6 +226,13 @@ class PlatformFoundationIT {
 
         assertThat(rest.getForEntity("/actuator/health/liveness", String.class).getBody()).contains("\"status\":\"UP\"");
         assertThat(rest.getForEntity("/actuator/health/readiness", String.class).getBody()).contains("\"status\":\"UP\"");
+
+        ResponseEntity<String> metrics = rest.getForEntity("/actuator/prometheus", String.class);
+        assertThat(metrics.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        ResponseEntity<String> opsMetrics = rest.withBasicAuth("ops", "test-ops-password")
+                .getForEntity("/actuator/prometheus", String.class);
+        assertThat(opsMetrics.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(opsMetrics.getBody()).contains("jvm_");
 
         ResponseEntity<String> env = rest.getForEntity("/actuator/env", String.class);
         assertThat(env.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);

@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import com.mfb.lending.common.security.OutboundEndpoint;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app.core-banking")
@@ -68,10 +69,21 @@ public class CoreBankingProperties {
         if (baseUrl == null || baseUrl.isBlank()) {
             throw new IllegalStateException("app.core-banking.base-url is required when the HTTP provider is selected");
         }
-        String url = baseUrl.trim();
-        boolean local = url.startsWith("http://127.0.0.1") || url.startsWith("http://localhost");
-        if (!url.startsWith("https://") && !local) {
-            throw new IllegalStateException("app.core-banking.base-url must use HTTPS");
+        try {
+            baseUrl = OutboundEndpoint.requireBaseUrl(baseUrl);
+        } catch (IllegalStateException ex) {
+            throw new IllegalStateException("app.core-banking.base-url is not an allowed HTTPS URL", ex);
+        }
+        if (paths != null) {
+            for (String path : paths.values()) {
+                if (path != null && !path.isBlank()) {
+                    try {
+                        OutboundEndpoint.requireRelativePath(path);
+                    } catch (IllegalStateException ex) {
+                        throw new IllegalStateException("app.core-banking.paths must be relative paths", ex);
+                    }
+                }
+            }
         }
         String method = authenticationMethod == null ? "" : authenticationMethod.trim().toUpperCase(Locale.ROOT);
         if (!method.equals("NONE") && !method.equals("API_KEY") && !method.equals("BEARER") && !method.equals("BASIC")) {

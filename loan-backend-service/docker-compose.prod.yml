@@ -1,0 +1,92 @@
+name: lending-production
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set from the secrets manager}
+      POSTGRES_USER: ${POSTGRES_USER:?set from the secrets manager}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set from the secrets manager}
+    volumes:
+      - lending-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set from the secrets manager}"]
+    volumes:
+      - lending-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?set from the secrets manager}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set from the secrets manager}
+    volumes:
+      - lending-rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    image: ${LENDING_IMAGE:?set the scanned image reference}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      SERVER_PORT: 8080
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      OPS_USERNAME: ${OPS_USERNAME:?set from the secrets manager}
+      OPS_PASSWORD: ${OPS_PASSWORD:?set from the secrets manager}
+      APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS:-}
+      JWT_HMAC_SECRET: ${JWT_HMAC_SECRET:?set from the secrets manager}
+      OTP_PEPPER: ${OTP_PEPPER:?set from the secrets manager}
+      APP_DATA_KEY: ${APP_DATA_KEY:?set from the secrets manager}
+      CUSTOMER_DOCUMENT_DIR: /var/lib/lending/customer-documents
+      CORE_BANKING_PROVIDER: http
+      CORE_BANKING_BASE_URL: ${CORE_BANKING_BASE_URL:?set from the secrets manager}
+      CORE_BANKING_AUTH_METHOD: ${CORE_BANKING_AUTH_METHOD:?set from the secrets manager}
+      CORE_BANKING_CLIENT_ID: ${CORE_BANKING_CLIENT_ID:-}
+      CORE_BANKING_CLIENT_SECRET: ${CORE_BANKING_CLIENT_SECRET:-}
+      CORE_BANKING_API_KEY: ${CORE_BANKING_API_KEY:-}
+      CORE_BANKING_WEBHOOK_SECRET: ${CORE_BANKING_WEBHOOK_SECRET:?set from the secrets manager}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    volumes:
+      - lending-documents:/var/lib/lending
+    restart: unless-stopped
+    stop_grace_period: 40s
+
+volumes:
+  lending-postgres:
+  lending-redis:
+  lending-rabbitmq:
+  lending-documents:

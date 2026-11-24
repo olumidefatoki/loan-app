@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - lending-alerts.yml
+
+scrape_configs:
+  - job_name: lending-api
+    metrics_path: /actuator/prometheus
+    scheme: https
+    basic_auth:
+      username: ops
+      password_file: /etc/lending/ops-password
+    static_configs:
+      - targets: ["lending-api:8080"]
+        labels:
+          service: loan-backend-service

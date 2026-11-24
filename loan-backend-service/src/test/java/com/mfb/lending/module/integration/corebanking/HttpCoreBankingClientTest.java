@@ -72,6 +72,38 @@ class HttpCoreBankingClientTest {
         server.verify(0, postRequestedFor(urlEqualTo("/transport/GL_TRANSACTIONS")));
     }
 
+    @Test
+    void absolutePathsAndMetadataHostsAreRefusedBeforeARequest() {
+        server.start();
+        assertThatThrownBy(() -> client(server.baseUrl(), "BEARER", "token-value", Map.of(
+                "FIND_CUSTOMER", "https://example.com/steal")))
+                .isInstanceOf(IllegalStateException.class);
+
+        CoreBankingProperties properties = new CoreBankingProperties();
+        properties.setProvider("http");
+        properties.setBaseUrl(server.baseUrl());
+        properties.setAuthenticationMethod("BEARER");
+        properties.setApiKey("token-value");
+        properties.setRequestTimeout(Duration.ofMillis(200));
+        properties.setConnectTimeout(Duration.ofMillis(200));
+        properties.setPaths(Map.of("FIND_CUSTOMER", "/transport/FIND_CUSTOMER"));
+        properties.validate();
+        properties.setPaths(Map.of("FIND_CUSTOMER", "https://example.com/steal"));
+        HttpCoreBankingClient live = new HttpCoreBankingClient(properties, new ObjectMapper());
+        assertThatThrownBy(() -> live.exchange(request(CoreOperation.FIND_CUSTOMER, "enquiry-ssrf")))
+                .isInstanceOf(CoreTransportException.class)
+                .extracting("failure")
+                .isEqualTo(CoreTransportException.Failure.NOT_CONFIGURED);
+        server.verify(0, postRequestedFor(urlEqualTo("/steal")));
+
+        CoreBankingProperties metadata = new CoreBankingProperties();
+        metadata.setProvider("http");
+        metadata.setBaseUrl("https://169.254.169.254");
+        metadata.setAuthenticationMethod("BEARER");
+        metadata.setApiKey("token-value");
+        assertThatThrownBy(metadata::validate).isInstanceOf(IllegalStateException.class);
+    }
+
     private static HttpCoreBankingClient client(String baseUrl, String method, String token, Map<String, String> paths) {
         CoreBankingProperties properties = new CoreBankingProperties();
         properties.setProvider("http");

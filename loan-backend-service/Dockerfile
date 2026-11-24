@@ -14,6 +14,7 @@ RUN chmod 755 /entrypoint.sh
 COPY --from=build --chown=lending:lending /src/target/loan-backend-service.jar /app/app.jar
 USER lending
 EXPOSE 8080
+STOPSIGNAL SIGTERM
 ENV SPRING_PROFILES_ACTIVE=production \
     JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \

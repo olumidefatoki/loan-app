@@ -37,19 +37,19 @@ class ApplicationRulesTest {
 
     @Test
     void individualAndSmeFormsStaySeparate() {
-        assertThat(fields(CustomerKind.INDIVIDUAL, input(
+        assertThat(formFields(CustomerKind.INDIVIDUAL, input(
                 individual(), null, List.of(), List.of(), List.of(), Set.of("PAYSLIP")), true))
                 .isEmpty();
 
-        assertThat(fields(CustomerKind.INDIVIDUAL, input(
+        assertThat(formFields(CustomerKind.INDIVIDUAL, input(
                 null, sme(true, new BigDecimal("300000.00")), List.of(), List.of(), List.of(), Set.of("PAYSLIP")), true))
                 .contains("smeFinancials", "individualFinancials");
 
-        assertThat(fields(CustomerKind.SME, input(
+        assertThat(formFields(CustomerKind.SME, input(
                 null, sme(true, new BigDecimal("300000.00")), List.of(), List.of(), List.of(), Set.of("PAYSLIP")), true))
                 .isEmpty();
 
-        assertThat(fields(CustomerKind.SME, input(
+        assertThat(formFields(CustomerKind.SME, input(
                 individual(), null, List.of(), List.of(), List.of(), Set.of("PAYSLIP")), true))
                 .contains("individualFinancials", "smeFinancials");
     }
@@ -120,6 +120,28 @@ class ApplicationRulesTest {
         assertThat(fields(CustomerKind.SME, input(
                 null, sme(true, null), List.of(), List.of(), List.of(), Set.of("PAYSLIP")), false))
                 .contains("productId");
+    }
+
+    private static List<String> formFields(CustomerKind segment, ApplicationInput input, boolean submitting) {
+        ProductTerms product = new ProductTerms(
+                ProductStatus.ACTIVE,
+                ProductStatus.ACTIVE,
+                CustomerSegment.BOTH,
+                new BigDecimal("1000.00"),
+                new BigDecimal("50000.00"),
+                1,
+                12,
+                TenureUnit.MONTHS,
+                RepaymentFrequency.MONTHLY,
+                false,
+                0,
+                List.of(new ProductDocumentRequirement(UUID.randomUUID(), UUID.randomUUID(), "PAYSLIP", "Payslip", true)),
+                List.of(),
+                List.of());
+        return ApplicationRules.validate(segment, product, input, LocalDate.of(2026, 11, 10), submitting)
+                .stream()
+                .map(violation -> violation.field())
+                .toList();
     }
 
     private static List<String> fields(CustomerKind segment, ApplicationInput input, boolean submitting) {

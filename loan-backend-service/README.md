@@ -91,7 +91,7 @@ Image build on its own:
 docker build -t loan-backend-service:local .
 ```
 
-The image starts with `SPRING_PROFILES_ACTIVE=production` and does not contain credentials. Supply `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`, `REDIS_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `OPS_USERNAME`, `OPS_PASSWORD`, `JWT_HMAC_SECRET`, `OTP_PEPPER`, `APP_DATA_KEY`, and `CUSTOMER_DOCUMENT_DIR` at runtime. `CUSTOMER_DOCUMENT_DIR` is the private directory used for customer document bytes. `JWT_HMAC_SECRET` and `APP_DATA_KEY` are Base64. The HMAC secret must decode to at least 32 bytes, and the data key must decode to exactly 32 bytes. Optional `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_PHONE`, and `BOOTSTRAP_ADMIN_MFA_SECRET` create the first system administrator when that email does not already exist.
+The image starts with `SPRING_PROFILES_ACTIVE=production` and does not contain credentials. That profile does not boot on the mock core banking provider, and it does not boot when a secret matches the local example. Use `docker-compose.prod.yml` only with values injected by the secrets manager. The development stack remains `docker compose`. Supply `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_HOST`, `REDIS_PASSWORD`, `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `OPS_USERNAME`, `OPS_PASSWORD`, `JWT_HMAC_SECRET`, `OTP_PEPPER`, `APP_DATA_KEY`, and `CUSTOMER_DOCUMENT_DIR` at runtime. `CUSTOMER_DOCUMENT_DIR` is the private directory used for customer document bytes. `JWT_HMAC_SECRET` and `APP_DATA_KEY` are Base64. The HMAC secret must decode to at least 32 bytes, and the data key must decode to exactly 32 bytes. Optional `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_PHONE`, and `BOOTSTRAP_ADMIN_MFA_SECRET` create the first system administrator when that email does not already exist.
 
 ## Module layout
 
@@ -147,4 +147,6 @@ Loan, repayment, and other domain tables are left for their own epics.
 
 ## Pipeline
 
-`.github/workflows/ci.yml` runs `mvn verify -Pci` and builds the image. `.github/workflows/cd-template.yml` is a manual image-build template. Point it at a registry before using it to publish.
+The repository workflow is `.github/workflows/ci.yml`. It runs `mvn verify -Pci`, packages the jar, scans for secrets with Gitleaks, runs Semgrep, runs OWASP Dependency-Check when `NVD_API_KEY` is set, builds the image, and scans that image with Trivy. SonarQube runs when the `SONAR_HOST_URL` repository variable and `SONAR_TOKEN` secret are set, and it waits for the quality gate. `loan-backend-service/.github/workflows/ci.yml` is the same pipeline for a checkout whose root is this service.
+
+Operational runbooks are in `docs/operations`. The security assessment and risk register are in `docs/security`. Production configuration is `.env.production.example` and `docker-compose.prod.yml`. Secrets for that profile come from the approved secrets manager. The process refuses the mock core banking provider and refuses secrets copied from the local example.

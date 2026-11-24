@@ -40,6 +40,24 @@ public class RateLimiter {
         assertAllowed("login", ipAddress, identifier, maxAttempts, window, true);
     }
 
+    public void assertKeyed(String action, String key, int maxAttempts, Duration window) {
+        String safeKey = key == null || key.isBlank() ? "unknown" : key;
+        try {
+            long hits = increment("auth:rl:" + action + ":" + TokenHasher.sha256(safeKey), window);
+            if (hits > maxAttempts) {
+                throw limited();
+            }
+        } catch (ApiException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            log.warn("Rate limit store unavailable for {}", action);
+            throw new ApiException(
+                    ErrorCode.SERVICE_UNAVAILABLE,
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "The request could not be completed");
+        }
+    }
+
     private void assertAllowed(
             String action,
             String ipAddress,
@@ -74,7 +92,8 @@ public class RateLimiter {
     private long increment(String key, Duration window) {
         Long count = redis.opsForValue().increment(key);
         long hits = count == null ? 1L : count;
-        if (hits == 1L) {
+        Long ttl = redis.getExpire(key);
+        if (ttl == null || ttl < 0) {
             redis.expire(key, window);
         }
         return hits;
