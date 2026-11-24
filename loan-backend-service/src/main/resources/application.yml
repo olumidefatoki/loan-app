@@ -167,3 +167,15 @@ app:
     promise-cron: "0 35 1 * * *"
     escalation-cron: "0 40 1 * * *"
     reporting-cron: "0 45 1 * * *"
+  reporting:
+    zone: Africa/Lagos
+    jobs-enabled: true
+    async-threshold: 500
+    max-rows: 50000
+    pdf-max-rows: 2000
+    max-active-exports: 3
+    max-range-days: 3660
+    export-ttl: 24h
+    directory: ${REPORT_EXPORT_DIR:${java.io.tmpdir}/mfb-report-exports}
+    snapshot-cron: "0 50 1 * * *"
+    export-poll-ms: 15000

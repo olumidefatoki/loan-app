@@ -19,6 +19,7 @@ public final class PermissionCodes {
     public static final String GUARANTOR_MANAGE = "GUARANTOR_MANAGE";
     public static final String GUARANTOR_VERIFY = "GUARANTOR_VERIFY";
     public static final String REPORT_VIEW = "REPORT_VIEW";
+    public static final String REPORT_EXPORT = "REPORT_EXPORT";
     public static final String USER_MANAGE = "USER_MANAGE";
     public static final String SYSTEM_CONFIGURE = "SYSTEM_CONFIGURE";
     public static final String LOAN_PRODUCT_VIEW = "LOAN_PRODUCT_VIEW";

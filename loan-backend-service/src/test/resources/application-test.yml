@@ -46,6 +46,12 @@ app:
       directory: ${java.io.tmpdir}/mfb-loan-agreements-it
   collections:
     jobs-enabled: false
+  reporting:
+    jobs-enabled: false
+    directory: ${java.io.tmpdir}/mfb-report-exports-it
+    async-threshold: 500
+    max-rows: 50000
+    pdf-max-rows: 2000
   core-banking:
     provider: mock
     webhook:

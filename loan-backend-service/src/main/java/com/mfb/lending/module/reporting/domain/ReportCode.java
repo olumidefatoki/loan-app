@@ -1,0 +1,21 @@
+package com.mfb.lending.module.reporting.domain;
+
+public enum ReportCode {
+    DISBURSEMENTS,
+    REPAYMENTS,
+    LOAN_PORTFOLIO,
+    PAR,
+    DEFAULTS,
+    BRANCH_PERFORMANCE,
+    PRODUCT_PERFORMANCE,
+    COLLECTIONS,
+    RECONCILIATION,
+    DELINQUENCY,
+    OUTSTANDING,
+    INTEREST_INCOME,
+    FEE_INCOME,
+    MATURITY,
+    CLOSURES,
+    RESTRUCTURED,
+    WRITE_OFFS
+}
