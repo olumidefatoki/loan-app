@@ -59,6 +59,17 @@ public record LoanAccount(
         return outstandingPrincipal.add(outstandingInterest).add(outstandingFees).add(outstandingPenalties);
     }
 
+    public LoanAccount withScheduleTerms(String frequency, Integer repaymentDay, String holiday) {
+        return new LoanAccount(
+                id, reference, applicationId, customerId, branchId, productId, productVersionId, offerId, currencyCode,
+                status, originalPrincipal, outstandingPrincipal, accruedInterest, outstandingInterest, outstandingFees,
+                outstandingPenalties, overpayment, disbursementDate, maturityDate, accrualStart, lastAccruedThrough,
+                gracePeriodDays, penaltyGraceDays, penaltyBasis, penaltyRate, penaltyAmount, earlyRepaymentRule,
+                earlyRepaymentFeeRate, interestMethod, interestPeriod, interestRate, frequency, dayCountConvention,
+                scale, roundingMethod, accrualFrequency, repaymentDay, holiday, coreDisbursementReference,
+                currentScheduleId, scheduleVersion, version, activatedAt, closedAt, createdAt, updatedAt, createdBy);
+    }
+
     public LoanAccount withPosition(Position position) {
         return new LoanAccount(
                 id, reference, applicationId, customerId, branchId, productId, productVersionId, offerId, currencyCode,

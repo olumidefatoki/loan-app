@@ -44,6 +44,8 @@ app:
       mode: RECORDED_ACCEPTANCE
     documents:
       directory: ${java.io.tmpdir}/mfb-loan-agreements-it
+  collections:
+    jobs-enabled: false
   core-banking:
     provider: mock
     webhook:

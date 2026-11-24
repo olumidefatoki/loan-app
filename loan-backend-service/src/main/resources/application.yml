@@ -154,3 +154,16 @@ app:
       secret: ${CORE_BANKING_WEBHOOK_SECRET:}
       replay-window: ${CORE_BANKING_WEBHOOK_REPLAY_WINDOW:5m}
     paths: {}
+  collections:
+    zone: Africa/Lagos
+    upcoming-days: 7
+    escalation-days: 61
+    delinquent-days: 1
+    jobs-enabled: true
+    delinquency-cron: "0 15 1 * * *"
+    upcoming-cron: "0 20 1 * * *"
+    case-cron: "0 25 1 * * *"
+    reminder-cron: "0 30 1 * * *"
+    promise-cron: "0 35 1 * * *"
+    escalation-cron: "0 40 1 * * *"
+    reporting-cron: "0 45 1 * * *"

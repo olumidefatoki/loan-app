@@ -367,20 +367,51 @@ public class LoanServicing {
     }
 
     public LoanAccount restructure(RestructureCommand command) {
-        if (command.reason() == null || command.reason().isBlank()) {
-            throw ValidationException.field("reason", "A restructure needs a reason");
+        return restructure(command, null, 0, null);
+    }
+
+    /**
+     * Posts an already approved collections restructuring.
+     * The previous schedule row is kept and marked superseded. Accrued interest is not capitalised or cleared.
+     */
+    public LoanAccount applyApprovedRestructure(ApprovedRestructure approved) {
+        return restructure(approved.command(), approved.repaymentFrequency(), approved.moratoriumDays(), approved.expectedInstalment());
+    }
+
+    public BigDecimal quotedInstalment(ApprovedRestructure approved) {
+        requireRestructure(approved.command(), approved.moratoriumDays());
+        LoanAccount account = store.findAccount(approved.loanAccountId()).orElseThrow(() -> new ResourceNotFoundException("Loan account"));
+        LoanAccount termed = termsOf(account, approved.repaymentFrequency(), approved.repaymentDayOfMonth(), approved.holidayRule());
+        BigDecimal rate = approved.interestRate() == null ? termed.interestRate() : approved.interestRate();
+        ScheduleQuote quote = quote(termed, valueDate(termed, approved.valueDate()), termed.outstandingPrincipal(), rate, approved.tenure(), approved.moratoriumDays());
+        if (quote.rows().isEmpty()) {
+            throw new ConflictException("The repayment schedule could not be calculated");
         }
-        if (command.tenure() < 1) {
-            throw ValidationException.field("tenure", "Tenure must be at least 1");
+        return quote.rows().get(0).instalmentAmount();
+    }
+
+    private LoanAccount restructure(RestructureCommand command, String frequencyOverride, int moratoriumDays, BigDecimal expectedInstalment) {
+        requireRestructure(command, moratoriumDays);
+        if (expectedInstalment != null && command.capitalizeInterest()) {
+            throw new ConflictException("A revised instalment cannot be combined with interest capitalisation");
         }
         return unitOfWork.required(() -> store.lockAccount(command.loanAccountId(), () -> {
             LoanAccount account = locked(command.loanAccountId());
             LocalDate asOf = valueDate(account, command.valueDate());
+            LoanAccount termed = termsOf(account, frequencyOverride, command.repaymentDayOfMonth(), command.holidayRule());
+            BigDecimal rate = command.interestRate() == null ? termed.interestRate() : command.interestRate();
+            if (expectedInstalment != null) {
+                ScheduleQuote preview = quote(termed, asOf, termed.outstandingPrincipal(), rate, command.tenure(), moratoriumDays);
+                BigDecimal calculated = preview.rows().get(0).instalmentAmount();
+                if (calculated.compareTo(expectedInstalment) != 0) {
+                    throw ValidationException.field("revisedInstalment", "Revised instalment does not match the calculated instalment of " + calculated.toPlainString());
+                }
+            }
             account = recognise(account, asOf, command.actorId(), command.actorName());
+            account = termsOf(account, frequencyOverride, command.repaymentDayOfMonth(), command.holidayRule());
             if (account.status() == LoanAccountStatus.CLOSED) {
                 throw new ConflictException("A closed loan cannot be restructured");
             }
-            BigDecimal rate = command.interestRate() == null ? account.interestRate() : command.interestRate();
             BigDecimal principal = account.outstandingPrincipal();
             if (command.capitalizeInterest() && account.outstandingInterest().signum() > 0) {
                 post(account, "CAPITALISE_INTEREST", Map.of("PRINCIPAL", account.outstandingInterest(), "INTEREST", account.outstandingInterest()),
@@ -391,16 +422,16 @@ public class LoanServicing {
                         account.accrualStart(), asOf, account.currentScheduleId(), account.scheduleVersion(), account.interestRate(), null);
                 store.updateAccount(account, account.version() - 1);
             }
-            LoanBooking booking = terms(account, principal, rate, command.tenure());
-            HolidayRule holiday = command.holidayRule() == null ? HolidayRule.valueOf(account.holidayRule()) : command.holidayRule();
-            ScheduleQuote quote = ServicingCalculator.schedule(request(booking, asOf, 0, command.tenure(), rate, command.repaymentDayOfMonth(), holiday));
+            ScheduleQuote quote = quote(account, asOf, principal, rate, command.tenure(), moratoriumDays);
             Instant now = Instant.now(clock);
             UUID scheduleId = UUID.randomUUID();
+            UUID previousScheduleId = account.currentScheduleId();
             store.supersedeCurrent(account.id());
             int version = account.scheduleVersion() + 1;
             LocalDate maturity = quote.rows().get(quote.rows().size() - 1).dueDate();
+            LoanBooking booking = terms(account, principal, rate, command.tenure());
             store.insertSchedule(new ScheduleVersion(
-                    scheduleId, account.id(), version, "CURRENT", account.currentScheduleId(), quote.quote().engineVersion(),
+                    scheduleId, account.id(), version, "CURRENT", previousScheduleId, quote.quote().engineVersion(),
                     ServicingCalculator.VERSION, fingerprint(quote), parameters(booking, asOf, AccrualFrequency.valueOf(account.accrualFrequency()), quote),
                     command.reason().trim(), now, command.actorName()));
             store.insertLines(lines(scheduleId, quote, account.scale()));
@@ -413,6 +444,45 @@ public class LoanServicing {
             audit("LOAN_SCHEDULE_RESTRUCTURED", account.id(), command.actorName(), Map.of("version", version));
             return next;
         }));
+    }
+
+    private static void requireRestructure(RestructureCommand command, int moratoriumDays) {
+        if (command.reason() == null || command.reason().isBlank()) {
+            throw ValidationException.field("reason", "A restructure needs a reason");
+        }
+        if (command.tenure() < 1) {
+            throw ValidationException.field("tenure", "Tenure must be at least 1");
+        }
+        if (moratoriumDays < 0 || moratoriumDays > 366) {
+            throw ValidationException.field("moratoriumDays", "Moratorium must be between 0 and 366 days");
+        }
+    }
+
+    private ScheduleQuote quote(LoanAccount account, LocalDate asOf, BigDecimal principal, BigDecimal rate, int tenure, int moratoriumDays) {
+        LoanBooking booking = terms(account, principal, rate, tenure);
+        ScheduleQuote quote = ServicingCalculator.schedule(request(
+                booking, asOf, moratoriumDays, tenure, rate, account.repaymentDayOfMonth(), HolidayRule.valueOf(account.holidayRule())));
+        if (quote.rows().isEmpty()) {
+            throw new ConflictException("The repayment schedule could not be calculated");
+        }
+        return quote;
+    }
+
+    private static LoanAccount termsOf(LoanAccount account, String frequencyOverride, Integer repaymentDay, HolidayRule holidayRule) {
+        return account.withScheduleTerms(
+                normalFrequency(frequencyOverride, account),
+                repaymentDay != null ? repaymentDay : account.repaymentDayOfMonth(),
+                holidayRule == null ? account.holidayRule() : holidayRule.name());
+    }
+
+    private static String normalFrequency(String override, LoanAccount account) {
+        String frequency = override == null || override.isBlank() ? account.repaymentFrequency() : override.trim();
+        try {
+            RepaymentFrequency.valueOf(frequency);
+        } catch (IllegalArgumentException ex) {
+            throw ValidationException.field("repaymentFrequency", "Repayment frequency must be DAILY, WEEKLY, or MONTHLY");
+        }
+        return frequency;
     }
 
     public Reconciliation reconcile(UUID loanAccountId) {

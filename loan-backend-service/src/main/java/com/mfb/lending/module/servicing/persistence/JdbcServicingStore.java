@@ -157,6 +157,7 @@ public class JdbcServicingStore implements ServicingStore {
                     outstanding_interest = :outstandingInterest, outstanding_fees = :outstandingFees,
                     outstanding_penalties = :outstandingPenalties, overpayment = :overpayment, maturity_date = :maturityDate,
                     accrual_start = :accrualStart, last_accrued_through = :lastAccruedThrough, interest_rate = :interestRate,
+                    repayment_frequency = :repaymentFrequency, repayment_day_of_month = :repaymentDayOfMonth, holiday_rule = :holidayRule,
                     current_schedule_id = :currentScheduleId, schedule_version = :scheduleVersion, version = :version,
                     activated_at = :activatedAt, closed_at = :closedAt
                 WHERE id = :id AND version = :expectedVersion
